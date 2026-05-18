@@ -149,10 +149,10 @@ function hideStatus(){document.getElementById('statusBar').style.display='none';
 async function callClaude(system,user){
   var key=document.getElementById('apiKey').value.trim();
   if(!key) throw new Error('请先填入 Anthropic API Key');
-  var res=await fetch('https://api.anthropic.com/v1/messages',{
+  var res=await fetch('https://daily-news-proxy.zongyi-wang.workers.dev',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-opus-4-6',max_tokens:4096,system:system,messages:[{role:'user',content:user}]})
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({apiKey:key,model:'claude-opus-4-6',max_tokens:4096,system:system,messages:[{role:'user',content:user}]})
   });
   if(!res.ok){var e=await res.json().catch(function(){return {};});throw new Error((e.error&&e.error.message)||('API Error '+res.status));}
   var data=await res.json();
