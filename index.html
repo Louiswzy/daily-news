@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily News Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e0e10;--surface:#16161a;--surface2:#1e1e24;--border:#2a2a32;--accent:#e8c97a;--danger:#e87a7a;--success:#7ae8a8;--text:#e8e6df;--text2:#8a8880;--text3:#4a4845;--r:10px;--rs:6px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.3;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:48px 24px 80px;}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:36px;}
+.logo-mark{width:42px;height:42px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.logo-name{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:600;}
+.logo-sub{font-size:11px;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;}
+.config{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:24px;}
+.config-title{font-size:11px;font-weight:500;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.config-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:600px){.config-grid{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field.full{grid-column:1/-1;}
+.field-label{font-size:11px;color:var(--text2);letter-spacing:0.06em;font-weight:500;}
+.field-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;outline:none;transition:border-color 0.15s;width:100%;}
+.field-input:focus{border-color:var(--accent);}
+.field-input::placeholder{color:var(--text3);}
+.field-hint{font-size:11px;color:var(--text3);}
+.save-notice{margin-top:14px;font-size:12px;color:var(--text3);text-align:center;}
+.action-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px;}
+.btn-gen{display:inline-flex;align-items:center;gap:9px;padding:12px 28px;background:var(--accent);color:#0e0e10;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s,transform 0.1s;}
+.btn-gen:hover{opacity:0.88;}
+.btn-gen:active{transform:scale(0.97);}
+.btn-gen:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.translate-wrap{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.lang-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:13px;padding:9px 12px;cursor:pointer;outline:none;}
+.btn-tr{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;}
+.btn-tr:hover{border-color:var(--text2);}
+.btn-tr:disabled{opacity:0.35;cursor:not-allowed;}
+.status-bar{display:none;align-items:center;gap:10px;padding:13px 16px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;color:var(--text2);margin-bottom:20px;}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:80px 20px;}
+.empty-icon{font-size:40px;margin-bottom:16px;opacity:0.4;}
+.empty-text{font-size:14px;color:var(--text2);}
+.empty-text span{color:var(--accent);}
+.news-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);letter-spacing:0.08em;margin-bottom:24px;display:flex;align-items:center;gap:10px;}
+.news-date::after{content:'';flex:1;height:1px;background:var(--border);}
+.region-block{margin-bottom:28px;}
+.region-header{font-size:11px;font-weight:500;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.region-header::after{content:'';flex:1;height:1px;background:var(--border);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;}
+.card:hover{border-color:var(--text3);}
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.badge{font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.b-ai{background:rgba(122,159,232,0.15);color:#7a9fe8;}
+.b-ec{background:rgba(122,232,168,0.15);color:#7ae8a8;}
+.b-dm{background:rgba(232,201,122,0.15);color:#e8c97a;}
+.card-title{font-size:14px;font-weight:500;color:var(--text);line-height:1.5;}
+.card-body{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:10px;}
+.card-url{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);text-decoration:none;word-break:break-all;}
+.card-url:hover{color:var(--text2);}
+.editorial{background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);padding:18px 20px;margin-top:24px;border-left:3px solid var(--accent);}
+.editorial-label{font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;}
+.editorial-text{font-size:13px;color:var(--text);line-height:1.8;}
+.notion-bar{margin-top:20px;padding:13px 16px;border-radius:var(--rs);font-size:13px;display:none;align-items:center;gap:10px;}
+.notion-bar.ok{display:flex;background:rgba(122,232,168,0.08);border:1px solid rgba(122,232,168,0.3);color:var(--success);}
+.notion-bar.fail{display:flex;background:rgba(232,122,122,0.08);border:1px solid rgba(232,122,122,0.3);color:var(--danger);}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="logo">
+    <div class="logo-mark">📡</div>
+    <div>
+      <div class="logo-name">Daily News</div>
+      <div class="logo-sub">AI · E-commerce · Digital Marketing</div>
+    </div>
+  </div>
+  <div class="config">
+    <div class="config-title">API 设置</div>
+    <div class="config-grid">
+      <div class="field">
+        <div class="field-label">Anthropic API Key</div>
+        <input class="field-input" type="password" id="apiKey" placeholder="sk-ant-api03-...">
+        <div class="field-hint">从 console.anthropic.com 获取</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Notion Token（可选）</div>
+        <input class="field-input" type="password" id="notionKey" placeholder="token_v2 值">
+        <div class="field-hint">填写后自动写入 Notion</div>
+      </div>
+      <div class="field full">
+        <div class="field-label">Notion Daily News 页面 ID</div>
+        <input class="field-input" type="text" id="notionPageId" value="361f2efa453681278220c4abaad056ba">
+        <div class="field-hint">已预填，通常无需修改</div>
+      </div>
+    </div>
+    <div class="save-notice">💡 设置只保存在本地浏览器中，刷新页面需重新输入</div>
+  </div>
+  <div class="action-bar">
+    <button class="btn-gen" id="btnGen" onclick="generateNews()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg>
+      生成今日新闻
+    </button>
+    <div class="translate-wrap">
+      <select class="lang-select" id="langSel">
+        <option value="zh-CN">简体中文</option>
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+      </select>
+      <button class="btn-tr" id="btnTr" onclick="translateNews()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+        翻译
+      </button>
+    </div>
+  </div>
+  <div class="status-bar" id="statusBar"></div>
+  <div id="newsArea">
+    <div class="empty">
+      <div class="empty-icon">📰</div>
+      <div class="empty-text">填入 API Key 后点击 <span>「生成今日新闻」</span></div>
+    </div>
+  </div>
+  <div class="notion-bar" id="notionBar"></div>
+</div>
+<script>
+var newsData = null;
+var newsLang = 'zh-CN';
+var REGIONS = [{key:'eu_us',label:'🌎 欧美地区'},{key:'china',label:'🇨🇳 中国地区'},{key:'sea',label:'🌏 东南亚地区'},{key:'japan',label:'🇯🇵 日本地区'}];
+var CATS = {ai:{label:'AI',cls:'b-ai'},ecommerce:{label:'E-commerce',cls:'b-ec'},digital_marketing:{label:'Digital Marketing',cls:'b-dm'}};
+
+function getToday(){var d=new Date();return d.getFullYear()+'年'+(String(d.getMonth()+1).padStart(2,'0'))+'月'+(String(d.getDate()).padStart(2,'0'))+'日';}
+function getTodayStr(){var d=new Date();return d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'))+(String(d.getDate()).padStart(2,'0'));}
+function getMonthKey(){var d=new Date();return d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'));}
+function getMonthLabel(){var d=new Date();return d.getFullYear()+'年'+(String(d.getMonth()+1).padStart(2,'0'))+'月';}
+
+function showStatus(msg,type){
+  var el=document.getElementById('statusBar');
+  el.style.display='flex';
+  el.style.borderColor=type==='ok'?'var(--success)':type==='err'?'var(--danger)':'var(--border)';
+  el.style.color=type==='ok'?'var(--success)':type==='err'?'var(--danger)':'var(--text2)';
+  if(type==='loading'){el.innerHTML='<span class="spinner"></span> '+msg;}
+  else{el.textContent=msg;}
+}
+function hideStatus(){document.getElementById('statusBar').style.display='none';}
+
+async function callClaude(system,user){
+  var key=document.getElementById('apiKey').value.trim();
+  if(!key) throw new Error('请先填入 Anthropic API Key');
+  var res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-opus-4-6',max_tokens:4096,system:system,messages:[{role:'user',content:user}]})
+  });
+  if(!res.ok){var e=await res.json().catch(function(){return {};});throw new Error((e.error&&e.error.message)||('API Error '+res.status));}
+  var data=await res.json();
+  return(data.content&&data.content[0]&&data.content[0].text)||'';
+}
+
+function safeParseJSON(raw){
+  // Step 1: strip markdown code fences
+  var s=raw.replace(/^[\s\S]*?(\{)/,'$1');
+  // Step 2: find last closing brace
+  var last=s.lastIndexOf('}');
+  if(last>=0) s=s.substring(0,last+1);
+  // Step 3: try parse
+  try{return JSON.parse(s);}catch(e1){
+    // Step 4: aggressive sanitize - remove control chars
+    var s2=s.replace(/[\u0000-\u001F\u007F]/g,' ').replace(/\n/g,' ').replace(/\r/g,' ').replace(/\t/g,' ');
+    try{return JSON.parse(s2);}catch(e2){throw new Error('JSON解析失败，请重试');}
+  }
+}
+
+async function generateNews(){
+  var btn=document.getElementById('btnGen');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner" style="border-top-color:#0e0e10;border-color:rgba(0,0,0,0.2)"></span> 生成中...';
+  document.getElementById('btnTr').disabled=true;
+  document.getElementById('notionBar').className='notion-bar';
+  showStatus('正在调用 Claude 生成今日新闻，约需 20 秒...','loading');
+
+  // Use a very strict system prompt to prevent JSON issues
+  var sys='You are a news editor. Output ONLY valid JSON. No explanation, no markdown, no code fences.\n'
+    +'Output this exact structure:\n'
+    +'{"page_title":"YYYYMMDD - headline","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"text"}\n'
+    +'Each news item: {"category":"ai","title":"title","summary":"summary under 80 chars","url":"https://example.com"}\n'
+    +'category must be: ai, ecommerce, or digital_marketing\n'
+    +'2-3 items per region. Keep all text values short and simple. No special characters in JSON strings.\n'
+    +'editorial: 100 chars max, digital marketing perspective.\n'
+    +'Output ONLY the JSON object, nothing else.';
+
+  var usr='Today is '+getToday()+'. Generate AI, ecommerce, digital marketing news for EU/US, China, Southeast Asia, Japan regions. Write all content in Simplified Chinese.';
+
+  try{
+    var raw=await callClaude(sys,usr);
+    newsData=safeParseJSON(raw);
+    newsLang='zh-CN';
+    renderNews(newsData);
+    showStatus('✓ 生成完成！','ok');
+    setTimeout(hideStatus,2000);
+    document.getElementById('btnTr').disabled=false;
+    await pushToNotion(newsData);
+  }catch(e){
+    showStatus('✕ 失败：'+e.message,'err');
+  }
+  btn.disabled=false;
+  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg> 重新生成';
+}
+
+async function translateNews(){
+  if(!newsData) return;
+  var lang=document.getElementById('langSel').value;
+  if(lang===newsLang) return;
+  var btn=document.getElementById('btnTr');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> 翻译中...';
+  showStatus('翻译中...','loading');
+  var names={'zh-CN':'Simplified Chinese','ja':'Japanese','en':'English'};
+  var sys='Translate all title, summary, editorial fields in this JSON to '+names[lang]+'. Keep JSON structure identical. Output ONLY the JSON.';
+  try{
+    var raw=await callClaude(sys,JSON.stringify(newsData));
+    newsData=safeParseJSON(raw);
+    newsLang=lang;
+    renderNews(newsData);
+    showStatus('✓ 翻译完成','ok');
+    setTimeout(hideStatus,1500);
+  }catch(e){
+    showStatus('✕ 翻译失败：'+e.message,'err');
+  }
+  btn.disabled=false;
+  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg> 翻译';
+}
+
+function renderNews(data){
+  var html='<div class="news-date">📅 '+getToday()+'</div>';
+  REGIONS.forEach(function(r){
+    var items=data.regions&&data.regions[r.key];
+    if(!items||!items.length) return;
+    html+='<div class="region-block"><div class="region-header">'+r.label+'</div>';
+    items.forEach(function(item){
+      var cat=CATS[item.category]||CATS.ai;
+      var title=(item.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var summary=(item.summary||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      var url=item.url||'';
+      html+='<div class="card"><div class="card-top"><span class="badge '+cat.cls+'">'+cat.label+'</span><span class="card-title">'+title+'</span></div><p class="card-body">'+summary+'</p>';
+      if(url) html+='<a class="card-url" href="'+url+'" target="_blank" rel="noopener"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+url+'</a>';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  if(data.editorial){
+    var ed=(data.editorial||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    html+='<div class="editorial"><div class="editorial-label">✍️ 编辑总评</div><p class="editorial-text">'+ed+'</p></div>';
+  }
+  document.getElementById('newsArea').innerHTML=html;
+}
+
+async function pushToNotion(data){
+  var nKey=document.getElementById('notionKey').value.trim();
+  var pageId=document.getElementById('notionPageId').value.trim();
+  var bar=document.getElementById('notionBar');
+  if(!nKey||!pageId){bar.className='notion-bar fail';bar.textContent='⚠️ 未填写 Notion Token，跳过写入';return;}
+  var isBearer=nKey.startsWith('ntn_')||nKey.startsWith('npt_')||nKey.startsWith('secret_');
+  var hdrs=isBearer
+    ?{'Authorization':'Bearer '+nKey,'Content-Type':'application/json','Notion-Version':'2022-06-28'}
+    :{'Content-Type':'application/json','Notion-Version':'2022-06-28','cookie':'token_v2='+nKey};
+  async function nPost(url,body){var r=await fetch(url,{method:'POST',headers:hdrs,body:JSON.stringify(body)});if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error((e.message)||('Notion '+r.status));}return r.json();}
+  async function nGet(url){var r=await fetch(url,{method:'GET',headers:hdrs});if(!r.ok) throw new Error('Notion GET '+r.status);return r.json();}
+  try{
+    bar.className='notion-bar ok';
+    bar.innerHTML='<span class="spinner" style="border-top-color:var(--success)"></span> 正在写入 Notion...';
+    var pageTitle=data.page_title||(getTodayStr()+' - 每日AI简报');
+    var RMAP={eu_us:'🌎 欧美地区',china:'🇨🇳 中国地区',sea:'🌏 东南亚地区',japan:'🇯🇵 日本地区'};
+    var CMAP={ai:'🤖 AI',ecommerce:'📦 E-commerce',digital_marketing:'📣 Digital Marketing'};
+    var blocks=[];
+    blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:'📅 '+getToday()},annotations:{color:'gray'}}]}});
+    blocks.push({object:'block',type:'divider',divider:{}});
+    ['eu_us','china','sea','japan'].forEach(function(key){
+      var items=(data.regions&&data.regions[key])||[];
+      if(!items.length) return;
+      blocks.push({object:'block',type:'heading_2',heading_2:{rich_text:[{type:'text',text:{content:RMAP[key]}}]}});
+      items.forEach(function(item){
+        var cat=CMAP[item.category]||'🤖 AI';
+        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:cat+'  '},annotations:{bold:true}},{type:'text',text:{content:item.title||''},annotations:{bold:true}}]}});
+        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:item.summary||''}}]}});
+        if(item.url) blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:'📎 '+item.url,link:{url:item.url}},annotations:{color:'gray',italic:true}}]}});
+        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:''}}]}});
+      });
+    });
+    blocks.push({object:'block',type:'divider',divider:{}});
+    if(data.editorial) blocks.push({object:'block',type:'callout',callout:{rich_text:[{type:'text',text:{content:data.editorial}}],icon:{type:'emoji',emoji:'✍️'},color:'gray_background'}});
+    var page=await nPost('https://api.notion.com/v1/pages',{parent:{page_id:pageId},icon:{type:'emoji',emoji:'📰'},properties:{title:{title:[{type:'text',text:{content:pageTitle}}]}},children:blocks.slice(0,100)});
+    var bRes=await nGet('https://api.notion.com/v1/blocks/'+pageId+'/children?page_size=100');
+    var mk=getMonthKey();
+    var existing=null;
+    (bRes.results||[]).forEach(function(b){if(b.type==='toggle'){var txt=(b.toggle.rich_text||[]).map(function(r){return r.plain_text;}).join('');if(txt.indexOf(mk)>=0) existing=b;}});
+    var toggleId;
+    if(existing){toggleId=existing.id;}
+    else{var tRes=await nPost('https://api.notion.com/v1/blocks/'+pageId+'/children',{children:[{object:'block',type:'toggle',toggle:{rich_text:[{type:'text',text:{content:'📂 '+mk+' — '+getMonthLabel()},annotations:{bold:true}}],children:[]}}]});toggleId=tRes.results[0].id;}
+    await nPost('https://api.notion.com/v1/blocks/'+toggleId+'/children',{children:[{object:'block',type:'link_to_page',link_to_page:{type:'page_id',page_id:page.id}}]});
+    bar.className='notion-bar ok';
+    bar.innerHTML='✓ 已写入 Notion！<a href="'+page.url+'" target="_blank" style="color:var(--success);margin-left:8px;text-decoration:underline">查看页面 →</a>';
+  }catch(e){
+    bar.className='notion-bar fail';
+    bar.textContent='⚠️ 写入 Notion 失败：'+e.message+'（新闻已在本页显示）';
+  }
+}
+</script>
+</body>
+</html>
