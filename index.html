@@ -26,7 +26,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .field-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;outline:none;transition:border-color 0.15s;width:100%;}
 .field-input:focus{border-color:var(--accent);}
 .field-input::placeholder{color:var(--text3);}
-.field-hint{font-size:11px;color:var(--text3);}
+.field-hint{font-size:11px;color:var(--text3);line-height:1.5;}
 .save-notice{margin-top:14px;font-size:12px;color:var(--text3);text-align:center;}
 .action-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px;}
 .btn-gen{display:inline-flex;align-items:center;gap:9px;padding:12px 28px;background:var(--accent);color:#0e0e10;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s,transform 0.1s;}
@@ -61,10 +61,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .card-body{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:10px;}
 .card-url{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);text-decoration:none;word-break:break-all;}
 .card-url:hover{color:var(--text2);}
-.editorial{background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);padding:18px 20px;margin-top:24px;border-left:3px solid var(--accent);}
+.editorial{background:var(--surface);border-left:3px solid var(--accent);border-radius:var(--r);padding:18px 20px;margin-top:24px;}
 .editorial-label{font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;}
 .editorial-text{font-size:13px;color:var(--text);line-height:1.8;}
-.notion-bar{margin-top:20px;padding:13px 16px;border-radius:var(--rs);font-size:13px;display:none;align-items:center;gap:10px;}
+.notion-bar{margin-top:20px;padding:13px 16px;border-radius:var(--rs);font-size:13px;display:none;align-items:center;gap:10px;flex-wrap:wrap;}
 .notion-bar.ok{display:flex;background:rgba(122,232,168,0.08);border:1px solid rgba(122,232,168,0.3);color:var(--success);}
 .notion-bar.fail{display:flex;background:rgba(232,122,122,0.08);border:1px solid rgba(232,122,122,0.3);color:var(--danger);}
 </style>
@@ -88,8 +88,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
       <div class="field">
         <div class="field-label">Notion Token（可选）</div>
-        <input class="field-input" type="password" id="notionKey" placeholder="token_v2 值">
-        <div class="field-hint">填写后自动写入 Notion</div>
+        <input class="field-input" type="password" id="notionKey" placeholder="ntn_ 或 token_v2 值">
+        <div class="field-hint">填写后自动写入 Notion Daily News 页面</div>
       </div>
       <div class="field full">
         <div class="field-label">Notion Daily News 页面 ID</div>
@@ -126,53 +126,86 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="notion-bar" id="notionBar"></div>
 </div>
 <script>
+// ── 配置 ──
+var PROXY = 'https://daily-news-proxy.zongyi-wang.workers.dev';
+
 var newsData = null;
 var newsLang = 'zh-CN';
-var REGIONS = [{key:'eu_us',label:'🌎 欧美地区'},{key:'china',label:'🇨🇳 中国地区'},{key:'sea',label:'🌏 东南亚地区'},{key:'japan',label:'🇯🇵 日本地区'}];
-var CATS = {ai:{label:'AI',cls:'b-ai'},ecommerce:{label:'E-commerce',cls:'b-ec'},digital_marketing:{label:'Digital Marketing',cls:'b-dm'}};
+var REGIONS = [
+  {key:'eu_us',label:'🌎 欧美地区'},
+  {key:'china',label:'🇨🇳 中国地区'},
+  {key:'sea',label:'🌏 东南亚地区'},
+  {key:'japan',label:'🇯🇵 日本地区'}
+];
+var CATS = {
+  ai:{label:'AI',cls:'b-ai'},
+  ecommerce:{label:'E-commerce',cls:'b-ec'},
+  digital_marketing:{label:'Digital Marketing',cls:'b-dm'}
+};
 
+// ── 日期工具 ──
 function getToday(){var d=new Date();return d.getFullYear()+'年'+(String(d.getMonth()+1).padStart(2,'0'))+'月'+(String(d.getDate()).padStart(2,'0'))+'日';}
 function getTodayStr(){var d=new Date();return d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'))+(String(d.getDate()).padStart(2,'0'));}
 function getMonthKey(){var d=new Date();return d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'));}
 function getMonthLabel(){var d=new Date();return d.getFullYear()+'年'+(String(d.getMonth()+1).padStart(2,'0'))+'月';}
 
+// ── UI 工具 ──
 function showStatus(msg,type){
   var el=document.getElementById('statusBar');
   el.style.display='flex';
   el.style.borderColor=type==='ok'?'var(--success)':type==='err'?'var(--danger)':'var(--border)';
   el.style.color=type==='ok'?'var(--success)':type==='err'?'var(--danger)':'var(--text2)';
-  if(type==='loading'){el.innerHTML='<span class="spinner"></span> '+msg;}
-  else{el.textContent=msg;}
+  el.innerHTML=type==='loading'?'<span class="spinner"></span> '+msg:msg;
 }
 function hideStatus(){document.getElementById('statusBar').style.display='none';}
 
+// ── Claude API（通过 Worker 代理）──
 async function callClaude(system,user){
   var key=document.getElementById('apiKey').value.trim();
   if(!key) throw new Error('请先填入 Anthropic API Key');
-  var res=await fetch('https://daily-news-proxy.zongyi-wang.workers.dev',{
+  var res=await fetch(PROXY,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({apiKey:key,model:'claude-opus-4-6',max_tokens:4096,system:system,messages:[{role:'user',content:user}]})
+    body:JSON.stringify({
+      apiKey:key,
+      model:'claude-opus-4-6',
+      max_tokens:4096,
+      system:system,
+      messages:[{role:'user',content:user}]
+    })
   });
-  if(!res.ok){var e=await res.json().catch(function(){return {};});throw new Error((e.error&&e.error.message)||('API Error '+res.status));}
+  if(!res.ok){var e=await res.json().catch(function(){return{};});throw new Error((e.error&&e.error.message)||(e.error)||('API Error '+res.status));}
   var data=await res.json();
+  if(data.error) throw new Error(data.error.message||data.error);
   return(data.content&&data.content[0]&&data.content[0].text)||'';
 }
 
+// ── Notion API（通过 Worker 代理）──
+async function notionRequest(method,url,body){
+  var token=document.getElementById('notionKey').value.trim();
+  var res=await fetch(PROXY+'?target=notion',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:token,method:method,url:url,data:body||{}})
+  });
+  var data=await res.json();
+  if(!res.ok||data.object==='error') throw new Error(data.message||('Notion Error '+res.status));
+  return data;
+}
+
+// ── JSON 解析 ──
 function safeParseJSON(raw){
-  // Step 1: strip markdown code fences
-  var s=raw.replace(/^[\s\S]*?(\{)/,'$1');
-  // Step 2: find last closing brace
-  var last=s.lastIndexOf('}');
-  if(last>=0) s=s.substring(0,last+1);
-  // Step 3: try parse
-  try{return JSON.parse(s);}catch(e1){
-    // Step 4: aggressive sanitize - remove control chars
-    var s2=s.replace(/[\u0000-\u001F\u007F]/g,' ').replace(/\n/g,' ').replace(/\r/g,' ').replace(/\t/g,' ');
-    try{return JSON.parse(s2);}catch(e2){throw new Error('JSON解析失败，请重试');}
+  var s=raw.replace(/```json/g,'').replace(/```/g,'').trim();
+  var start=s.indexOf('{');
+  var end=s.lastIndexOf('}');
+  if(start>=0&&end>=0) s=s.substring(start,end+1);
+  try{return JSON.parse(s);}catch(e){
+    s=s.replace(/[\u0000-\u001F\u007F]/g,' ');
+    return JSON.parse(s);
   }
 }
 
+// ── 生成新闻 ──
 async function generateNews(){
   var btn=document.getElementById('btnGen');
   btn.disabled=true;
@@ -181,17 +214,13 @@ async function generateNews(){
   document.getElementById('notionBar').className='notion-bar';
   showStatus('正在调用 Claude 生成今日新闻，约需 20 秒...','loading');
 
-  // Use a very strict system prompt to prevent JSON issues
-  var sys='You are a news editor. Output ONLY valid JSON. No explanation, no markdown, no code fences.\n'
-    +'Output this exact structure:\n'
-    +'{"page_title":"YYYYMMDD - headline","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"text"}\n'
-    +'Each news item: {"category":"ai","title":"title","summary":"summary under 80 chars","url":"https://example.com"}\n'
-    +'category must be: ai, ecommerce, or digital_marketing\n'
-    +'2-3 items per region. Keep all text values short and simple. No special characters in JSON strings.\n'
-    +'editorial: 100 chars max, digital marketing perspective.\n'
-    +'Output ONLY the JSON object, nothing else.';
+  var sys='You are a news editor. Output ONLY valid JSON with no explanation or markdown.\n'
+    +'Structure: {"page_title":"YYYYMMDD - headline in Chinese under 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"editorial in Chinese under 100 chars"}\n'
+    +'Each item: {"category":"ai","title":"title in Chinese","summary":"summary in Chinese under 60 chars","url":"https://..."}\n'
+    +'category: ai, ecommerce, or digital_marketing. 2-3 items per region.\n'
+    +'IMPORTANT: Use only simple characters in JSON strings. No quotes inside strings. Output ONLY the JSON object.';
 
-  var usr='Today is '+getToday()+'. Generate AI, ecommerce, digital marketing news for EU/US, China, Southeast Asia, Japan regions. Write all content in Simplified Chinese.';
+  var usr='Today is '+getToday()+'. Generate news for EU/US, China, Southeast Asia, Japan covering AI, ecommerce, digital marketing. All content in Simplified Chinese.';
 
   try{
     var raw=await callClaude(sys,usr);
@@ -201,7 +230,9 @@ async function generateNews(){
     showStatus('✓ 生成完成！','ok');
     setTimeout(hideStatus,2000);
     document.getElementById('btnTr').disabled=false;
-    await pushToNotion(newsData);
+    // 写入 Notion
+    var nKey=document.getElementById('notionKey').value.trim();
+    if(nKey) await pushToNotion(newsData);
   }catch(e){
     showStatus('✕ 失败：'+e.message,'err');
   }
@@ -209,6 +240,7 @@ async function generateNews(){
   btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg> 重新生成';
 }
 
+// ── 翻译 ──
 async function translateNews(){
   if(!newsData) return;
   var lang=document.getElementById('langSel').value;
@@ -218,7 +250,7 @@ async function translateNews(){
   btn.innerHTML='<span class="spinner"></span> 翻译中...';
   showStatus('翻译中...','loading');
   var names={'zh-CN':'Simplified Chinese','ja':'Japanese','en':'English'};
-  var sys='Translate all title, summary, editorial fields in this JSON to '+names[lang]+'. Keep JSON structure identical. Output ONLY the JSON.';
+  var sys='Translate all title, summary, editorial, page_title fields in this JSON to '+names[lang]+'. Keep JSON structure identical. Output ONLY the JSON.';
   try{
     var raw=await callClaude(sys,JSON.stringify(newsData));
     newsData=safeParseJSON(raw);
@@ -226,13 +258,12 @@ async function translateNews(){
     renderNews(newsData);
     showStatus('✓ 翻译完成','ok');
     setTimeout(hideStatus,1500);
-  }catch(e){
-    showStatus('✕ 翻译失败：'+e.message,'err');
-  }
+  }catch(e){showStatus('✕ 翻译失败：'+e.message,'err');}
   btn.disabled=false;
   btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg> 翻译';
 }
 
+// ── 渲染新闻 ──
 function renderNews(data){
   var html='<div class="news-date">📅 '+getToday()+'</div>';
   REGIONS.forEach(function(r){
@@ -241,39 +272,33 @@ function renderNews(data){
     html+='<div class="region-block"><div class="region-header">'+r.label+'</div>';
     items.forEach(function(item){
       var cat=CATS[item.category]||CATS.ai;
-      var title=(item.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      var summary=(item.summary||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      var url=item.url||'';
+      var title=(item.title||'').replace(/</g,'&lt;');
+      var summary=(item.summary||'').replace(/</g,'&lt;');
       html+='<div class="card"><div class="card-top"><span class="badge '+cat.cls+'">'+cat.label+'</span><span class="card-title">'+title+'</span></div><p class="card-body">'+summary+'</p>';
-      if(url) html+='<a class="card-url" href="'+url+'" target="_blank" rel="noopener"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+url+'</a>';
+      if(item.url) html+='<a class="card-url" href="'+item.url+'" target="_blank" rel="noopener"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+item.url+'</a>';
       html+='</div>';
     });
     html+='</div>';
   });
   if(data.editorial){
-    var ed=(data.editorial||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    html+='<div class="editorial"><div class="editorial-label">✍️ 编辑总评</div><p class="editorial-text">'+ed+'</p></div>';
+    html+='<div class="editorial"><div class="editorial-label">✍️ 编辑总评</div><p class="editorial-text">'+data.editorial.replace(/</g,'&lt;')+'</p></div>';
   }
   document.getElementById('newsArea').innerHTML=html;
 }
 
+// ── 写入 Notion ──
 async function pushToNotion(data){
-  var nKey=document.getElementById('notionKey').value.trim();
   var pageId=document.getElementById('notionPageId').value.trim();
   var bar=document.getElementById('notionBar');
-  if(!nKey||!pageId){bar.className='notion-bar fail';bar.textContent='⚠️ 未填写 Notion Token，跳过写入';return;}
-  var isBearer=nKey.startsWith('ntn_')||nKey.startsWith('npt_')||nKey.startsWith('secret_');
-  var hdrs=isBearer
-    ?{'Authorization':'Bearer '+nKey,'Content-Type':'application/json','Notion-Version':'2022-06-28'}
-    :{'Content-Type':'application/json','Notion-Version':'2022-06-28','cookie':'token_v2='+nKey};
-  async function nPost(url,body){var r=await fetch(url,{method:'POST',headers:hdrs,body:JSON.stringify(body)});if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error((e.message)||('Notion '+r.status));}return r.json();}
-  async function nGet(url){var r=await fetch(url,{method:'GET',headers:hdrs});if(!r.ok) throw new Error('Notion GET '+r.status);return r.json();}
+  bar.className='notion-bar ok';
+  bar.innerHTML='<span class="spinner" style="border-top-color:var(--success)"></span> 正在写入 Notion...';
+
   try{
-    bar.className='notion-bar ok';
-    bar.innerHTML='<span class="spinner" style="border-top-color:var(--success)"></span> 正在写入 Notion...';
     var pageTitle=data.page_title||(getTodayStr()+' - 每日AI简报');
     var RMAP={eu_us:'🌎 欧美地区',china:'🇨🇳 中国地区',sea:'🌏 东南亚地区',japan:'🇯🇵 日本地区'};
     var CMAP={ai:'🤖 AI',ecommerce:'📦 E-commerce',digital_marketing:'📣 Digital Marketing'};
+
+    // 构建 blocks
     var blocks=[];
     blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:'📅 '+getToday()},annotations:{color:'gray'}}]}});
     blocks.push({object:'block',type:'divider',divider:{}});
@@ -283,7 +308,10 @@ async function pushToNotion(data){
       blocks.push({object:'block',type:'heading_2',heading_2:{rich_text:[{type:'text',text:{content:RMAP[key]}}]}});
       items.forEach(function(item){
         var cat=CMAP[item.category]||'🤖 AI';
-        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:cat+'  '},annotations:{bold:true}},{type:'text',text:{content:item.title||''},annotations:{bold:true}}]}});
+        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[
+          {type:'text',text:{content:cat+'  '},annotations:{bold:true}},
+          {type:'text',text:{content:item.title||''},annotations:{bold:true}}
+        ]}});
         blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:item.summary||''}}]}});
         if(item.url) blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:'📎 '+item.url,link:{url:item.url}},annotations:{color:'gray',italic:true}}]}});
         blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:''}}]}});
@@ -291,20 +319,46 @@ async function pushToNotion(data){
     });
     blocks.push({object:'block',type:'divider',divider:{}});
     if(data.editorial) blocks.push({object:'block',type:'callout',callout:{rich_text:[{type:'text',text:{content:data.editorial}}],icon:{type:'emoji',emoji:'✍️'},color:'gray_background'}});
-    var page=await nPost('https://api.notion.com/v1/pages',{parent:{page_id:pageId},icon:{type:'emoji',emoji:'📰'},properties:{title:{title:[{type:'text',text:{content:pageTitle}}]}},children:blocks.slice(0,100)});
-    var bRes=await nGet('https://api.notion.com/v1/blocks/'+pageId+'/children?page_size=100');
+
+    // 创建子页面
+    var page=await notionRequest('POST','https://api.notion.com/v1/pages',{
+      parent:{page_id:pageId},
+      icon:{type:'emoji',emoji:'📰'},
+      properties:{title:{title:[{type:'text',text:{content:pageTitle}}]}},
+      children:blocks.slice(0,100)
+    });
+
+    // 找或创建月份 Toggle
     var mk=getMonthKey();
+    var bRes=await notionRequest('GET','https://api.notion.com/v1/blocks/'+pageId+'/children?page_size=100');
     var existing=null;
-    (bRes.results||[]).forEach(function(b){if(b.type==='toggle'){var txt=(b.toggle.rich_text||[]).map(function(r){return r.plain_text;}).join('');if(txt.indexOf(mk)>=0) existing=b;}});
+    (bRes.results||[]).forEach(function(b){
+      if(b.type==='toggle'){
+        var txt=(b.toggle.rich_text||[]).map(function(r){return r.plain_text;}).join('');
+        if(txt.indexOf(mk)>=0) existing=b;
+      }
+    });
     var toggleId;
-    if(existing){toggleId=existing.id;}
-    else{var tRes=await nPost('https://api.notion.com/v1/blocks/'+pageId+'/children',{children:[{object:'block',type:'toggle',toggle:{rich_text:[{type:'text',text:{content:'📂 '+mk+' — '+getMonthLabel()},annotations:{bold:true}}],children:[]}}]});toggleId=tRes.results[0].id;}
-    await nPost('https://api.notion.com/v1/blocks/'+toggleId+'/children',{children:[{object:'block',type:'link_to_page',link_to_page:{type:'page_id',page_id:page.id}}]});
+    if(existing){
+      toggleId=existing.id;
+    }else{
+      var tRes=await notionRequest('POST','https://api.notion.com/v1/blocks/'+pageId+'/children',{
+        children:[{object:'block',type:'toggle',toggle:{rich_text:[{type:'text',text:{content:'📂 '+mk+' — '+getMonthLabel()},annotations:{bold:true}}],children:[]}}]
+      });
+      toggleId=tRes.results[0].id;
+    }
+
+    // 在 Toggle 内添加链接
+    await notionRequest('POST','https://api.notion.com/v1/blocks/'+toggleId+'/children',{
+      children:[{object:'block',type:'link_to_page',link_to_page:{type:'page_id',page_id:page.id}}]
+    });
+
     bar.className='notion-bar ok';
     bar.innerHTML='✓ 已写入 Notion！<a href="'+page.url+'" target="_blank" style="color:var(--success);margin-left:8px;text-decoration:underline">查看页面 →</a>';
+
   }catch(e){
     bar.className='notion-bar fail';
-    bar.textContent='⚠️ 写入 Notion 失败：'+e.message+'（新闻已在本页显示）';
+    bar.textContent='⚠️ 写入 Notion 失败：'+e.message+'（新闻已在本页正常显示）';
   }
 }
 </script>
