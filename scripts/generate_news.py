@@ -49,6 +49,8 @@ JSON结构：
         },
         timeout=60
     )
+    if not resp.ok:
+        print("API Error:", resp.status_code, resp.text)
     resp.raise_for_status()
     raw = resp.json()["content"][0]["text"].strip()
     raw = raw.replace("```json", "").replace("```", "").strip()
