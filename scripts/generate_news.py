@@ -58,8 +58,8 @@ JSON结构：
             "anthropic-version": "2023-06-01"
         },
         json={
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 1000,
+            "model": "claude-sonnet-4-5",
+            "max_tokens": 2000,
             "system": system_prompt,
             "messages": [{"role": "user", "content": user_prompt}]
         },
