@@ -42,7 +42,7 @@ JSON结构：
             "anthropic-version": "2023-06-01"
         },
         json={
-            "model": "claude-3-5-haiku-20241022",
+            "model": "claude-3-haiku-20240307",
             "max_tokens": 2000,
             "system": system_prompt,
             "messages": [{"role": "user", "content": user_prompt}]
