@@ -461,11 +461,12 @@ async function generateNews() {
   showStatus(isAppend ? '正在搜索新的新闻（避开已有来源），约需 30 秒...' : '正在搜索最新新闻并生成简报，约需 30 秒...', 'loading');
 
   // Build exclude note
-  var excludeNote = '';
+  // Build exclude list for system prompt
+  var excludeSys = '';
   if (existingUrls.length > 0) {
-    excludeNote = '\n\nIMPORTANT - ALREADY USED SOURCE URLs (do NOT use these or any article from these pages):\n'
-      + existingUrls.map(function(u){ return '- ' + u; }).join('\n')
-      + '\n\nYou MUST find completely different articles from different URLs.';
+    excludeSys = '\nALREADY USED URLs (do NOT use these sources):\n'
+      + existingUrls.map(function(u){ return u; }).join('\n')
+      + '\nFind completely different articles from different URLs.';
   }
 
   var sys = 'You are a professional news editor for digital marketing, AI, and ecommerce.\n'
@@ -475,13 +476,14 @@ async function generateNews() {
     + '2. Summary must accurately reflect the actual article content (150-200 chars)\n'
     + '3. Skip regions or categories where no real news is found - never invent\n'
     + '4. 1-3 items per region maximum\n'
-    + '5. After searching, output ONLY a single valid JSON object. No explanation, no preamble.\n\n'
+    + '5. After searching, output ONLY a single valid JSON object. No explanation, no preamble.\n'
     + 'JSON format:\n'
     + '{"page_title":"YYYYMMDD - key headline Chinese max 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"Chinese comment from digital marketer perspective max 150 chars"}\n'
     + 'Each item: {"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Detailed Chinese summary 150-200 chars","url":"REAL verified URL"}\n'
-    + 'FINAL OUTPUT MUST BE ONLY THE JSON OBJECT. START WITH { AND END WITH }.';
+    + 'FINAL OUTPUT MUST BE ONLY THE JSON OBJECT. START WITH { AND END WITH }.'
+    + excludeSys;
 
-  var usr = 'Today is ' + getToday() + '. Find real news from the past 7 days on AI, ecommerce, digital marketing across EU/US, China, Southeast Asia, Japan. All content in Simplified Chinese. Only include items with real verified URLs.' + excludeNote;
+  var usr = 'Today is ' + getToday() + '. Find real news from the past 7 days on AI, ecommerce, digital marketing across EU/US, China, Southeast Asia, Japan. All content in Simplified Chinese. Only include items with real verified URLs.';
 
   var tools = [{type:'web_search_20250305', name:'web_search'}];
 
