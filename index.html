@@ -3,364 +3,788 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily News Generator</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Daily News</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0e0e10;--surface:#16161a;--surface2:#1e1e24;--border:#2a2a32;--accent:#e8c97a;--danger:#e87a7a;--success:#7ae8a8;--text:#e8e6df;--text2:#8a8880;--text3:#4a4845;--r:10px;--rs:6px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.3;pointer-events:none;z-index:0;}
-.app{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:48px 24px 80px;}
-.logo{display:flex;align-items:center;gap:12px;margin-bottom:36px;}
-.logo-mark{width:42px;height:42px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.logo-name{font-family:'Noto Serif SC',serif;font-size:22px;font-weight:600;}
-.logo-sub{font-size:11px;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;}
-.config{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:24px;}
-.config-title{font-size:11px;font-weight:500;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.config-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-@media(max-width:600px){.config-grid{grid-template-columns:1fr;}}
-.field{display:flex;flex-direction:column;gap:6px;}
-.field.full{grid-column:1/-1;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.25;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;display:flex;min-height:100vh;}
+.sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.main{flex:1;padding:40px 48px 80px;min-width:0;}
+@media(max-width:768px){.sidebar{display:none;}.main{padding:24px 16px 60px;}}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:6px 8px;margin-bottom:14px;}
+.sidebar-logo-mark{width:30px;height:30px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.sidebar-logo-name{font-family:'Noto Serif SC',serif;font-size:14px;font-weight:600;}
+.sidebar-section{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;padding:4px 8px;margin-top:10px;}
+.sidebar-nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;font-size:12px;color:var(--text2);transition:background 0.1s;}
+.sidebar-nav-item:hover{background:var(--surface2);color:var(--text);}
+.month-toggle{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--rs);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:background 0.1s;user-select:none;}
+.month-toggle:hover{background:var(--surface2);}
+.month-toggle .arr{font-size:9px;transition:transform 0.2s;}
+.month-toggle.open .arr{transform:rotate(90deg);}
+.month-days{display:none;padding-left:18px;}
+.month-days.open{display:block;}
+.day-link{display:block;padding:4px 8px;border-radius:var(--rs);cursor:pointer;font-size:11px;color:var(--text3);transition:background 0.1s,color 0.1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.day-link:hover{background:var(--surface2);color:var(--text2);}
+.day-link.active{color:var(--accent);}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+.page-title{font-family:'Noto Serif SC',serif;font-size:24px;font-weight:600;}
+.page-sub{font-size:11px;color:var(--text2);margin-top:4px;letter-spacing:0.06em;}
+.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;transition:opacity 0.15s,transform 0.1s;border:none;white-space:nowrap;}
+.btn:active{transform:scale(0.97);}
+.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.btn-primary{background:var(--accent);color:#0e0e10;}
+.btn-primary:hover{opacity:0.88;}
+.btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--text2);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.spinner{width:13px;height:13px;border:2px solid rgba(0,0,0,0.15);border-top-color:#0e0e10;border-radius:50%;animation:spin 0.7s linear infinite;}
+.spinner-light{border-color:var(--border);border-top-color:var(--text2);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.status-bar{display:none;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;color:var(--text2);margin-bottom:20px;}
+.translate-wrap{position:relative;}
+.translate-btn{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.translate-btn:hover{border-color:var(--text2);}
+.translate-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden;z-index:50;min-width:130px;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.translate-dropdown.open{display:block;}
+.translate-option{padding:10px 16px;font-size:13px;cursor:pointer;color:var(--text2);}
+.translate-option:hover{background:var(--surface2);color:var(--text);}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;width:100%;max-width:480px;margin:16px;}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close{cursor:pointer;color:var(--text2);font-size:18px;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
 .field-label{font-size:11px;color:var(--text2);letter-spacing:0.06em;font-weight:500;}
-.field-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;outline:none;transition:border-color 0.15s;width:100%;}
+.field-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;outline:none;width:100%;}
 .field-input:focus{border-color:var(--accent);}
 .field-input::placeholder{color:var(--text3);}
 .field-hint{font-size:11px;color:var(--text3);line-height:1.5;}
-.save-notice{margin-top:14px;font-size:12px;color:var(--text3);text-align:center;}
-.action-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px;}
-.btn-gen{display:inline-flex;align-items:center;gap:9px;padding:12px 28px;background:var(--accent);color:#0e0e10;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;transition:opacity 0.15s,transform 0.1s;}
-.btn-gen:hover{opacity:0.88;}
-.btn-gen:active{transform:scale(0.97);}
-.btn-gen:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
-.translate-wrap{display:flex;align-items:center;gap:8px;margin-left:auto;}
-.lang-select{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-size:13px;padding:9px 12px;cursor:pointer;outline:none;}
-.btn-tr{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;}
-.btn-tr:hover{border-color:var(--text2);}
-.btn-tr:disabled{opacity:0.35;cursor:not-allowed;}
-.status-bar{display:none;align-items:center;gap:10px;padding:13px 16px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;color:var(--text2);margin-bottom:20px;}
-.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
-@keyframes spin{to{transform:rotate(360deg);}}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
 .empty{text-align:center;padding:80px 20px;}
-.empty-icon{font-size:40px;margin-bottom:16px;opacity:0.4;}
-.empty-text{font-size:14px;color:var(--text2);}
-.empty-text span{color:var(--accent);}
-.news-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);letter-spacing:0.08em;margin-bottom:24px;display:flex;align-items:center;gap:10px;}
-.news-date::after{content:'';flex:1;height:1px;background:var(--border);}
-.region-block{margin-bottom:28px;}
-.region-header{font-size:11px;font-weight:500;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.empty-icon{font-size:44px;margin-bottom:16px;opacity:0.3;}
+.empty-text{font-size:15px;color:var(--text2);margin-bottom:8px;}
+.empty-sub{font-size:13px;color:var(--text3);}
+.archive-month{margin-bottom:8px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.archive-month-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;background:var(--surface);transition:background 0.1s;user-select:none;}
+.archive-month-header:hover{background:var(--surface2);}
+.archive-month-header .arr{font-size:11px;transition:transform 0.2s;color:var(--text2);}
+.archive-month-header.open .arr{transform:rotate(90deg);}
+.archive-month-title{font-size:14px;font-weight:600;}
+.archive-month-count{font-size:12px;color:var(--text3);margin-left:auto;}
+.archive-month-body{display:none;border-top:1px solid var(--border);}
+.archive-month-body.open{display:block;}
+.archive-day-item{display:flex;align-items:center;gap:12px;padding:12px 18px;cursor:pointer;transition:background 0.1s;border-bottom:1px solid var(--border);}
+.archive-day-item:last-child{border-bottom:none;}
+.archive-day-item:hover{background:var(--surface2);}
+.archive-day-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);flex-shrink:0;width:76px;}
+.archive-day-title{font-size:13px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.detail-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:16px;padding:5px 10px;border-radius:var(--rs);}
+.detail-back:hover{background:var(--surface);}
+.detail-title{font-family:'Noto Serif SC',serif;font-size:20px;font-weight:600;margin-bottom:5px;}
+.detail-meta{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:24px;}
+.region-block{margin-bottom:26px;}
+.region-header{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .region-header::after{content:'';flex:1;height:1px;background:var(--border);}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;margin-bottom:9px;transition:border-color 0.15s;}
 .card:hover{border-color:var(--text3);}
-.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
-.badge{font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.card.bookmarked{border-color:rgba(232,201,122,0.4);}
+.card-top{display:flex;align-items:flex-start;gap:9px;}
+.badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0;margin-top:3px;}
 .b-ai{background:rgba(122,159,232,0.15);color:#7a9fe8;}
 .b-ec{background:rgba(122,232,168,0.15);color:#7ae8a8;}
 .b-dm{background:rgba(232,201,122,0.15);color:#e8c97a;}
-.card-title{font-size:14px;font-weight:500;color:var(--text);line-height:1.5;}
-.card-body{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:10px;}
-.card-url{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);text-decoration:none;word-break:break-all;}
+.card-title{font-size:14px;font-weight:500;color:var(--text);line-height:1.5;flex:1;}
+.card-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-top:-1px;}
+.card-icon-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:5px;transition:background 0.15s;}
+.card-icon-btn:hover{background:var(--surface2);}
+.bookmark-btn svg{fill:none;stroke:var(--text3);transition:stroke 0.2s,fill 0.2s;}
+.bookmark-btn.active svg{fill:var(--accent);stroke:var(--accent);}
+.expand-btn svg{stroke:var(--text3);transition:transform 0.25s,stroke 0.15s;}
+.expand-btn:hover svg{stroke:var(--text2);}
+.expand-btn.open svg{transform:rotate(180deg);}
+.card-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.card-detail.open{display:block;}
+.card-body{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px;}
+.card-url{display:inline-flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);text-decoration:none;word-break:break-all;}
 .card-url:hover{color:var(--text2);}
-.editorial{background:var(--surface);border-left:3px solid var(--accent);border-radius:var(--r);padding:18px 20px;margin-top:24px;}
-.editorial-label{font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;}
+.editorial{background:var(--surface);border-left:3px solid var(--accent);border-radius:var(--r);padding:16px 18px;margin-top:22px;}
+.editorial-label{font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;}
 .editorial-text{font-size:13px;color:var(--text);line-height:1.8;}
-.notion-bar{margin-top:20px;padding:13px 16px;border-radius:var(--rs);font-size:13px;display:none;align-items:center;gap:10px;flex-wrap:wrap;}
-.notion-bar.ok{display:flex;background:rgba(122,232,168,0.08);border:1px solid rgba(122,232,168,0.3);color:var(--success);}
-.notion-bar.fail{display:flex;background:rgba(232,122,122,0.08);border:1px solid rgba(232,122,122,0.3);color:var(--danger);}
+.section-divider{display:flex;align-items:center;gap:12px;margin:48px 0 24px;}
+.section-divider-line{flex:1;height:1px;background:var(--border);}
+.section-divider-title{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;}
+.highlights-month{margin-bottom:12px;border:1px solid rgba(232,201,122,0.2);border-radius:var(--r);overflow:hidden;}
+.highlights-month-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;background:rgba(232,201,122,0.04);transition:background 0.1s;user-select:none;}
+.highlights-month-header:hover{background:rgba(232,201,122,0.08);}
+.highlights-month-header .arr{font-size:11px;transition:transform 0.2s;color:var(--accent);}
+.highlights-month-header.open .arr{transform:rotate(90deg);}
+.highlights-month-title{font-size:14px;font-weight:600;color:var(--accent);}
+.highlights-month-count{font-size:12px;color:var(--text3);margin-left:auto;}
+.highlights-month-body{display:none;border-top:1px solid rgba(232,201,122,0.15);}
+.highlights-month-body.open{display:block;}
+.highlights-month-actions{padding:14px 18px 0;}
+.highlights-grid{padding:14px 18px;}
+.highlight-card{background:var(--surface2);border:1px solid rgba(232,201,122,0.2);border-radius:var(--rs);padding:13px 15px;margin-bottom:8px;}
+.highlight-card-top{display:flex;align-items:flex-start;gap:8px;}
+.highlight-card-title{font-size:13px;font-weight:500;color:var(--text);flex:1;line-height:1.5;}
+.highlight-remove{cursor:pointer;color:var(--text3);font-size:14px;padding:2px 4px;border-radius:3px;flex-shrink:0;}
+.highlight-remove:hover{color:var(--danger);}
+.highlight-badge{font-size:9px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.summary-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-bottom:16px;}
+.summary-item-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.summary-item-num{width:26px;height:26px;background:var(--accent);color:#0e0e10;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.summary-item-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.4;}
+.summary-para{font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:12px;padding:12px 14px;background:var(--surface2);border-radius:var(--rs);}
+.summary-note-label{font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;margin-top:16px;}
+.summary-note-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;color:var(--text);font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:vertical;min-height:80px;line-height:1.6;}
+.summary-note-input:focus{border-color:var(--accent);}
+.summary-note-input::placeholder{color:var(--text3);}
+.summary-note-save{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text2);border:1px solid var(--border);margin-top:8px;}
+.summary-note-save:hover{border-color:var(--accent);color:var(--accent);}
+.summary-note-saved{color:var(--success);font-size:12px;margin-top:6px;display:none;}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="logo">
-    <div class="logo-mark">📡</div>
-    <div>
-      <div class="logo-name">Daily News</div>
-      <div class="logo-sub">AI · E-commerce · Digital Marketing</div>
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">📡</div>
+      <div class="sidebar-logo-name">Daily News</div>
     </div>
+    <div class="sidebar-section">导航</div>
+    <div class="sidebar-nav-item" onclick="showArchive()">📰 新闻归档</div>
+    <div class="sidebar-nav-item" onclick="scrollToHighlights()">⭐ 重点新闻</div>
+    <div class="sidebar-section">归档</div>
+    <div id="sidebarArchive"></div>
   </div>
-  <div class="config">
-    <div class="config-title">API 设置</div>
-    <div class="config-grid">
-      <div class="field">
-        <div class="field-label">Anthropic API Key</div>
-        <input class="field-input" type="password" id="apiKey" placeholder="sk-ant-api03-...">
-        <div class="field-hint">从 console.anthropic.com 获取</div>
+  <div class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Daily News</div>
+        <div class="page-sub">AI · E-commerce · Digital Marketing</div>
       </div>
-      <div class="field">
-        <div class="field-label">Notion Token（可选）</div>
-        <input class="field-input" type="password" id="notionKey" placeholder="ntn_ 或 token_v2 值">
-        <div class="field-hint">填写后自动写入 Notion Daily News 页面</div>
+      <div class="header-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ 设置</button>
+        <div class="translate-wrap" id="translateWrap" style="display:none;">
+          <div class="translate-btn" id="translateBtn" onclick="toggleTranslateMenu()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+            <span id="translateLabel">翻译</span>
+            <span style="font-size:9px;color:var(--text3);">▾</span>
+          </div>
+          <div class="translate-dropdown" id="translateDropdown">
+            <div class="translate-option" onclick="doTranslate('zh-CN','简体中文')">🇨🇳 简体中文</div>
+            <div class="translate-option" onclick="doTranslate('en','English')">🇺🇸 English</div>
+            <div class="translate-option" onclick="doTranslate('ja','日本語')">🇯🇵 日本語</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btnGen" onclick="generateNews()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg>
+          生成今日新闻
+        </button>
       </div>
-      <div class="field full">
-        <div class="field-label">Notion Daily News 页面 ID</div>
-        <input class="field-input" type="text" id="notionPageId" value="361f2efa453681278220c4abaad056ba">
-        <div class="field-hint">已预填，通常无需修改</div>
-      </div>
     </div>
-    <div class="save-notice">💡 设置只保存在本地浏览器中，刷新页面需重新输入</div>
+    <div class="status-bar" id="statusBar"></div>
+    <div id="mainContent"></div>
   </div>
-  <div class="action-bar">
-    <button class="btn-gen" id="btnGen" onclick="generateNews()">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg>
-      生成今日新闻
-    </button>
-    <div class="translate-wrap">
-      <select class="lang-select" id="langSel">
-        <option value="zh-CN">简体中文</option>
-        <option value="ja">日本語</option>
-        <option value="en">English</option>
-      </select>
-      <button class="btn-tr" id="btnTr" onclick="translateNews()" disabled>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
-        翻译
-      </button>
-    </div>
-  </div>
-  <div class="status-bar" id="statusBar"></div>
-  <div id="newsArea">
-    <div class="empty">
-      <div class="empty-icon">📰</div>
-      <div class="empty-text">填入 API Key 后点击 <span>「生成今日新闻」</span></div>
-    </div>
-  </div>
-  <div class="notion-bar" id="notionBar"></div>
 </div>
-<script>
-// ── 配置 ──
-var PROXY = 'https://daily-news-proxy.zongyi-wang.workers.dev';
 
-var newsData = null;
-var newsLang = 'zh-CN';
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-title">⚙️ API 设置 <span class="modal-close" onclick="closeSettings()">✕</span></div>
+    <div class="field">
+      <div class="field-label">Anthropic API Key</div>
+      <input class="field-input" type="password" id="apiKey" placeholder="sk-ant-api03-...">
+      <div class="field-hint">从 console.anthropic.com 获取，保存后自动记住</div>
+    </div>
+    <div class="field">
+      <div class="field-label">Cloudflare Worker URL</div>
+      <input class="field-input" type="text" id="workerUrl" placeholder="https://daily-news-proxy.zongyi-wang.workers.dev">
+      <div class="field-hint">用于代理 API 请求</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeSettings()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var DEFAULT_WORKER = 'https://daily-news-proxy.zongyi-wang.workers.dev';
+var SK_NEWS = 'dn_archive_v2';
+var SK_API  = 'dn_apikey';
+var SK_WRK  = 'dn_worker';
+var SK_BM   = 'dn_bookmarks';
+var SK_NOTE = 'dn_notes';
+
 var REGIONS = [
-  {key:'eu_us',label:'🌎 欧美地区'},
-  {key:'china',label:'🇨🇳 中国地区'},
-  {key:'sea',label:'🌏 东南亚地区'},
-  {key:'japan',label:'🇯🇵 日本地区'}
+  {key:'eu_us',  label:'🌎 欧美地区'},
+  {key:'china',  label:'🇨🇳 中国地区'},
+  {key:'sea',    label:'🌏 东南亚地区'},
+  {key:'japan',  label:'🇯🇵 日本地区'}
 ];
 var CATS = {
-  ai:{label:'AI',cls:'b-ai'},
-  ecommerce:{label:'E-commerce',cls:'b-ec'},
-  digital_marketing:{label:'Digital Marketing',cls:'b-dm'}
+  ai:                {label:'AI',                cls:'b-ai'},
+  ecommerce:         {label:'E-commerce',        cls:'b-ec'},
+  digital_marketing: {label:'Digital Marketing', cls:'b-dm'}
 };
 
-// ── 日期工具 ──
-function getToday(){var d=new Date();return d.getFullYear()+'年'+(String(d.getMonth()+1).padStart(2,'0'))+'月'+(String(d.getDate()).padStart(2,'0'))+'日';}
-function getTodayStr(){var d=new Date();return d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'))+(String(d.getDate()).padStart(2,'0'));}
-function getMonthKey(){var d=new Date();return d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'));}
-function getMonthLabel(){var d=new Date();return d.getFullYear()+'年'+(String(d.getMonth()+1).padStart(2,'0'))+'月';}
+var currentNewsId   = null;
+var currentNewsData = null;
+var currentLang     = 'zh-CN';
 
-// ── UI 工具 ──
-function showStatus(msg,type){
-  var el=document.getElementById('statusBar');
-  el.style.display='flex';
-  el.style.borderColor=type==='ok'?'var(--success)':type==='err'?'var(--danger)':'var(--border)';
-  el.style.color=type==='ok'?'var(--success)':type==='err'?'var(--danger)':'var(--text2)';
-  el.innerHTML=type==='loading'?'<span class="spinner"></span> '+msg:msg;
+// ── Date helpers ──
+function getToday() {
+  var d = new Date();
+  return d.getFullYear() + '年' + String(d.getMonth()+1).padStart(2,'0') + '月' + String(d.getDate()).padStart(2,'0') + '日';
 }
-function hideStatus(){document.getElementById('statusBar').style.display='none';}
-
-// ── Claude API（通过 Worker 代理）──
-async function callClaude(system,user){
-  var key=document.getElementById('apiKey').value.trim();
-  if(!key) throw new Error('请先填入 Anthropic API Key');
-  var res=await fetch(PROXY,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      apiKey:key,
-      model:'claude-opus-4-6',
-      max_tokens:4096,
-      system:system,
-      messages:[{role:'user',content:user}]
-    })
-  });
-  if(!res.ok){var e=await res.json().catch(function(){return{};});throw new Error((e.error&&e.error.message)||(e.error)||('API Error '+res.status));}
-  var data=await res.json();
-  if(data.error) throw new Error(data.error.message||data.error);
-  return(data.content&&data.content[0]&&data.content[0].text)||'';
+function getTodayStr() {
+  var d = new Date();
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
 }
-
-// ── Notion API（通过 Worker 代理）──
-async function notionRequest(method,url,body){
-  var token=document.getElementById('notionKey').value.trim();
-  var res=await fetch(PROXY+'?target=notion',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({token:token,method:method,url:url,data:body||{}})
-  });
-  var data=await res.json();
-  if(!res.ok||data.object==='error') throw new Error(data.message||('Notion Error '+res.status));
-  return data;
+function getMonthKey() {
+  var d = new Date();
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0');
 }
+function fmtMonth(mk) { return mk.slice(0,4) + '年' + mk.slice(4,6) + '月'; }
+function fmtDate(dk)  { return dk.slice(0,4) + '年' + dk.slice(4,6) + '月' + dk.slice(6,8) + '日'; }
 
-// ── JSON 解析 ──
-function safeParseJSON(raw){
-  var s=raw.replace(/```json/g,'').replace(/```/g,'').trim();
-  var start=s.indexOf('{');
-  var end=s.lastIndexOf('}');
-  if(start>=0&&end>=0) s=s.substring(start,end+1);
-  try{return JSON.parse(s);}catch(e){
-    s=s.replace(/[\u0000-\u001F\u007F]/g,' ');
-    return JSON.parse(s);
-  }
+// ── Archive storage ──
+function loadArchive() {
+  try { return JSON.parse(localStorage.getItem(SK_NEWS) || '{}'); } catch(e) { return {}; }
 }
+function saveArchive(a) { localStorage.setItem(SK_NEWS, JSON.stringify(a)); }
 
-// ── 生成新闻 ──
-async function generateNews(){
-  var btn=document.getElementById('btnGen');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner" style="border-top-color:#0e0e10;border-color:rgba(0,0,0,0.2)"></span> 生成中...';
-  document.getElementById('btnTr').disabled=true;
-  document.getElementById('notionBar').className='notion-bar';
-  showStatus('正在调用 Claude 生成今日新闻，约需 20 秒...','loading');
-
-  var sys='You are a news editor. Output ONLY valid JSON with no explanation or markdown.\n'
-    +'Structure: {"page_title":"YYYYMMDD - headline in Chinese under 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"editorial in Chinese under 100 chars"}\n'
-    +'Each item: {"category":"ai","title":"title in Chinese","summary":"summary in Chinese under 60 chars","url":"https://..."}\n'
-    +'category: ai, ecommerce, or digital_marketing. 2-3 items per region.\n'
-    +'IMPORTANT: Use only simple characters in JSON strings. No quotes inside strings. Output ONLY the JSON object.';
-
-  var usr='Today is '+getToday()+'. Generate news for EU/US, China, Southeast Asia, Japan covering AI, ecommerce, digital marketing. All content in Simplified Chinese.';
-
-  try{
-    var raw=await callClaude(sys,usr);
-    newsData=safeParseJSON(raw);
-    newsLang='zh-CN';
-    renderNews(newsData);
-    showStatus('✓ 生成完成！','ok');
-    setTimeout(hideStatus,2000);
-    document.getElementById('btnTr').disabled=false;
-    // 写入 Notion
-    var nKey=document.getElementById('notionKey').value.trim();
-    if(nKey) await pushToNotion(newsData);
-  }catch(e){
-    showStatus('✕ 失败：'+e.message,'err');
-  }
-  btn.disabled=false;
-  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg> 重新生成';
-}
-
-// ── 翻译 ──
-async function translateNews(){
-  if(!newsData) return;
-  var lang=document.getElementById('langSel').value;
-  if(lang===newsLang) return;
-  var btn=document.getElementById('btnTr');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner"></span> 翻译中...';
-  showStatus('翻译中...','loading');
-  var names={'zh-CN':'Simplified Chinese','ja':'Japanese','en':'English'};
-  var sys='Translate all title, summary, editorial, page_title fields in this JSON to '+names[lang]+'. Keep JSON structure identical. Output ONLY the JSON.';
-  try{
-    var raw=await callClaude(sys,JSON.stringify(newsData));
-    newsData=safeParseJSON(raw);
-    newsLang=lang;
-    renderNews(newsData);
-    showStatus('✓ 翻译完成','ok');
-    setTimeout(hideStatus,1500);
-  }catch(e){showStatus('✕ 翻译失败：'+e.message,'err');}
-  btn.disabled=false;
-  btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg> 翻译';
-}
-
-// ── 渲染新闻 ──
-function renderNews(data){
-  var html='<div class="news-date">📅 '+getToday()+'</div>';
-  REGIONS.forEach(function(r){
-    var items=data.regions&&data.regions[r.key];
-    if(!items||!items.length) return;
-    html+='<div class="region-block"><div class="region-header">'+r.label+'</div>';
-    items.forEach(function(item){
-      var cat=CATS[item.category]||CATS.ai;
-      var title=(item.title||'').replace(/</g,'&lt;');
-      var summary=(item.summary||'').replace(/</g,'&lt;');
-      html+='<div class="card"><div class="card-top"><span class="badge '+cat.cls+'">'+cat.label+'</span><span class="card-title">'+title+'</span></div><p class="card-body">'+summary+'</p>';
-      if(item.url) html+='<a class="card-url" href="'+item.url+'" target="_blank" rel="noopener"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'+item.url+'</a>';
-      html+='</div>';
-    });
-    html+='</div>';
-  });
-  if(data.editorial){
-    html+='<div class="editorial"><div class="editorial-label">✍️ 编辑总评</div><p class="editorial-text">'+data.editorial.replace(/</g,'&lt;')+'</p></div>';
-  }
-  document.getElementById('newsArea').innerHTML=html;
-}
-
-// ── 写入 Notion ──
-async function pushToNotion(data){
-  var pageId=document.getElementById('notionPageId').value.trim();
-  var bar=document.getElementById('notionBar');
-  bar.className='notion-bar ok';
-  bar.innerHTML='<span class="spinner" style="border-top-color:var(--success)"></span> 正在写入 Notion...';
-
-  try{
-    var pageTitle=data.page_title||(getTodayStr()+' - 每日AI简报');
-    var RMAP={eu_us:'🌎 欧美地区',china:'🇨🇳 中国地区',sea:'🌏 东南亚地区',japan:'🇯🇵 日本地区'};
-    var CMAP={ai:'🤖 AI',ecommerce:'📦 E-commerce',digital_marketing:'📣 Digital Marketing'};
-
-    // 构建 blocks
-    var blocks=[];
-    blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:'📅 '+getToday()},annotations:{color:'gray'}}]}});
-    blocks.push({object:'block',type:'divider',divider:{}});
-    ['eu_us','china','sea','japan'].forEach(function(key){
-      var items=(data.regions&&data.regions[key])||[];
-      if(!items.length) return;
-      blocks.push({object:'block',type:'heading_2',heading_2:{rich_text:[{type:'text',text:{content:RMAP[key]}}]}});
-      items.forEach(function(item){
-        var cat=CMAP[item.category]||'🤖 AI';
-        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[
-          {type:'text',text:{content:cat+'  '},annotations:{bold:true}},
-          {type:'text',text:{content:item.title||''},annotations:{bold:true}}
-        ]}});
-        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:item.summary||''}}]}});
-        if(item.url) blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:'📎 '+item.url,link:{url:item.url}},annotations:{color:'gray',italic:true}}]}});
-        blocks.push({object:'block',type:'paragraph',paragraph:{rich_text:[{type:'text',text:{content:''}}]}});
+function mergeIntoArchive(dk, mk, newData) {
+  var a = loadArchive();
+  if (!a[mk]) a[mk] = {};
+  if (!a[mk][dk]) {
+    // First time today: just save
+    a[mk][dk] = newData;
+  } else {
+    // Subsequent times: merge, dedup by URL then title
+    var existing = a[mk][dk];
+    var merged = JSON.parse(JSON.stringify(existing));
+    if (!merged.regions) merged.regions = {};
+    var rks = ['eu_us','china','sea','japan'];
+    rks.forEach(function(rk) {
+      var newItems = (newData.regions && newData.regions[rk]) || [];
+      if (!merged.regions[rk]) merged.regions[rk] = [];
+      var usedUrls   = merged.regions[rk].map(function(x){ return x.url; }).filter(Boolean);
+      var usedTitles = merged.regions[rk].map(function(x){ return x.title; });
+      newItems.forEach(function(item) {
+        var dupUrl   = item.url && usedUrls.indexOf(item.url) >= 0;
+        var dupTitle = usedTitles.indexOf(item.title) >= 0;
+        if (!dupUrl && !dupTitle) {
+          merged.regions[rk].push(item);
+          if (item.url) usedUrls.push(item.url);
+          usedTitles.push(item.title);
+        }
       });
     });
-    blocks.push({object:'block',type:'divider',divider:{}});
-    if(data.editorial) blocks.push({object:'block',type:'callout',callout:{rich_text:[{type:'text',text:{content:data.editorial}}],icon:{type:'emoji',emoji:'✍️'},color:'gray_background'}});
-
-    // 创建子页面
-    var page=await notionRequest('POST','https://api.notion.com/v1/pages',{
-      parent:{page_id:pageId},
-      icon:{type:'emoji',emoji:'📰'},
-      properties:{title:{title:[{type:'text',text:{content:pageTitle}}]}},
-      children:blocks.slice(0,100)
-    });
-
-    // 找或创建月份 Toggle
-    var mk=getMonthKey();
-    var bRes=await notionRequest('GET','https://api.notion.com/v1/blocks/'+pageId+'/children?page_size=100');
-    var existing=null;
-    (bRes.results||[]).forEach(function(b){
-      if(b.type==='toggle'){
-        var txt=(b.toggle.rich_text||[]).map(function(r){return r.plain_text;}).join('');
-        if(txt.indexOf(mk)>=0) existing=b;
-      }
-    });
-    var toggleId;
-    if(existing){
-      toggleId=existing.id;
-    }else{
-      var tRes=await notionRequest('POST','https://api.notion.com/v1/blocks/'+pageId+'/children',{
-        children:[{object:'block',type:'toggle',toggle:{rich_text:[{type:'text',text:{content:'📂 '+mk+' — '+getMonthLabel()},annotations:{bold:true}}],children:[]}}]
-      });
-      toggleId=tRes.results[0].id;
+    // Append editorial
+    if (newData.editorial && newData.editorial !== existing.editorial) {
+      merged.editorial = (existing.editorial ? existing.editorial + '\n\n【补充】' : '') + newData.editorial;
     }
+    a[mk][dk] = merged;
+  }
+  saveArchive(a);
+}
 
-    // 在 Toggle 内添加链接
-    await notionRequest('POST','https://api.notion.com/v1/blocks/'+toggleId+'/children',{
-      children:[{object:'block',type:'link_to_page',link_to_page:{type:'page_id',page_id:page.id}}]
-    });
+// ── Bookmark storage ──
+function loadBookmarks() {
+  try { return JSON.parse(localStorage.getItem(SK_BM) || '{}'); } catch(e) { return {}; }
+}
+function saveBookmarks(b) { localStorage.setItem(SK_BM, JSON.stringify(b)); }
 
-    bar.className='notion-bar ok';
-    bar.innerHTML='✓ 已写入 Notion！<a href="'+page.url+'" target="_blank" style="color:var(--success);margin-left:8px;text-decoration:underline">查看页面 →</a>';
+function bmId(dk, rk, idx) { return dk + '__' + rk + '__' + idx; }
 
-  }catch(e){
-    bar.className='notion-bar fail';
-    bar.textContent='⚠️ 写入 Notion 失败：'+e.message+'（新闻已在本页正常显示）';
+function isBookmarked(dk, rk, idx) {
+  return !!(loadBookmarks()[bmId(dk,rk,idx)]);
+}
+
+function toggleBookmark(dk, rk, idx, item) {
+  var b   = loadBookmarks();
+  var bid = bmId(dk, rk, idx);
+  if (b[bid]) {
+    delete b[bid];
+    saveBookmarks(b);
+    return false;
+  } else {
+    b[bid] = {
+      id: bid, dk: dk, mk: dk.slice(0,6),
+      regionKey: rk, category: item.category,
+      title: item.title, summary: item.summary,
+      url: item.url, savedAt: Date.now()
+    };
+    saveBookmarks(b);
+    return true;
   }
 }
+
+// ── Note storage ──
+function loadNotes() { try { return JSON.parse(localStorage.getItem(SK_NOTE) || '{}'); } catch(e) { return {}; } }
+function saveNote(bid, text) { var n = loadNotes(); n[bid] = text; localStorage.setItem(SK_NOTE, JSON.stringify(n)); }
+function getNote(bid) { return loadNotes()[bid] || ''; }
+
+// ── Settings ──
+function openSettings() {
+  document.getElementById('apiKey').value    = localStorage.getItem(SK_API) || '';
+  document.getElementById('workerUrl').value = localStorage.getItem(SK_WRK) || DEFAULT_WORKER;
+  document.getElementById('settingsModal').classList.add('open');
+}
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+function saveSettings() {
+  var k = document.getElementById('apiKey').value.trim();
+  var w = document.getElementById('workerUrl').value.trim() || DEFAULT_WORKER;
+  if (k) localStorage.setItem(SK_API, k);
+  localStorage.setItem(SK_WRK, w);
+  closeSettings();
+  showStatus('✓ 设置已保存', 'ok');
+  setTimeout(hideStatus, 2000);
+  if (k) showArchive();
+}
+function getApiKey() { return localStorage.getItem(SK_API) || ''; }
+function getWorker() { return localStorage.getItem(SK_WRK) || DEFAULT_WORKER; }
+
+// ── Status ──
+function showStatus(msg, type) {
+  var el = document.getElementById('statusBar');
+  el.style.display     = 'flex';
+  el.style.borderColor = type === 'ok' ? 'var(--success)' : type === 'err' ? 'var(--danger)' : 'var(--border)';
+  el.style.color       = type === 'ok' ? 'var(--success)' : type === 'err' ? 'var(--danger)' : 'var(--text2)';
+  el.innerHTML = type === 'loading' ? '<span class="spinner spinner-light"></span> ' + msg : msg;
+}
+function hideStatus() { document.getElementById('statusBar').style.display = 'none'; }
+
+// ── Translate ──
+function toggleTranslateMenu() { document.getElementById('translateDropdown').classList.toggle('open'); }
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.translate-wrap')) document.getElementById('translateDropdown').classList.remove('open');
+});
+
+async function doTranslate(lang, label) {
+  document.getElementById('translateDropdown').classList.remove('open');
+  if (!currentNewsData || lang === currentLang) return;
+  document.getElementById('translateLabel').textContent = '翻译中...';
+  showStatus('翻译中...', 'loading');
+  var names = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'};
+  var sys = 'Translate all title, summary, editorial, page_title fields to ' + names[lang] + '. Keep JSON structure identical. Output ONLY the JSON object.';
+  try {
+    var raw = await callClaude(sys, JSON.stringify(currentNewsData), null);
+    var t = safeParseJSON(raw);
+    t._date = currentNewsData._date; t._month = currentNewsData._month; t._ts = currentNewsData._ts;
+    currentNewsData = t; currentLang = lang;
+    renderDetail(t);
+    showStatus('✓ 已翻译为 ' + label, 'ok');
+    setTimeout(hideStatus, 1500);
+  } catch(e) { showStatus('✕ 翻译失败：' + e.message, 'err'); }
+  document.getElementById('translateLabel').textContent = label;
+}
+
+// ── Claude API ──
+async function callClaude(system, user, tools) {
+  var key = getApiKey();
+  if (!key) { openSettings(); throw new Error('请先在设置中填入 Anthropic API Key'); }
+  var payload = {
+    apiKey: key, model: 'claude-haiku-4-5-20251001', max_tokens: 4096,
+    system: system, messages: [{role:'user', content:user}]
+  };
+  if (tools) payload.tools = tools;
+  var res = await fetch(getWorker(), {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  });
+  if (!res.ok) { var e = await res.json().catch(function(){return{};}); throw new Error((e.error && e.error.message) || ('Error ' + res.status)); }
+  var data = await res.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  var text = '';
+  if (data.content) data.content.forEach(function(b){ if (b.type === 'text') text += b.text; });
+  return text;
+}
+
+function safeParseJSON(raw) {
+  var s = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+  var i = s.indexOf('{'), j = s.lastIndexOf('}');
+  if (i >= 0 && j >= 0) s = s.substring(i, j+1);
+  try { return JSON.parse(s); }
+  catch(e) { return JSON.parse(s.replace(/[\u0000-\u001F\u007F]/g,' ')); }
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Card interactions ──
+function toggleExpand(cid) {
+  var btn = document.getElementById('ebtn-' + cid);
+  var det = document.getElementById('edet-' + cid);
+  if (!btn || !det) return;
+  btn.classList.toggle('open');
+  det.classList.toggle('open');
+}
+
+function handleBookmark(dk, rk, idx) {
+  // Get item from current news data
+  var item = {};
+  if (currentNewsData && currentNewsData.regions && currentNewsData.regions[rk]) {
+    item = currentNewsData.regions[rk][idx] || {};
+  }
+  var active = toggleBookmark(dk, rk, idx, item);
+  var btnEl  = document.getElementById('bmbtn-' + dk + '_' + rk + '_' + idx);
+  if (btnEl) {
+    btnEl.classList.toggle('active', active);
+    var card = btnEl.closest('.card');
+    if (card) card.classList.toggle('bookmarked', active);
+  }
+}
+
+// ── Generate news ──
+async function generateNews() {
+  var btn = document.getElementById('btnGen');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 生成中...';
+
+  // Collect existing URLs from today to avoid duplicates
+  var existingUrls = [];
+  var archive = loadArchive();
+  var dk0 = getTodayStr();
+  var mk0 = getMonthKey();
+  var todayData = archive[mk0] && archive[mk0][dk0];
+  if (todayData && todayData.regions) {
+    ['eu_us','china','sea','japan'].forEach(function(rk) {
+      var items = todayData.regions[rk] || [];
+      items.forEach(function(it) { if (it.url) existingUrls.push(it.url); });
+    });
+  }
+  var isAppend = existingUrls.length > 0;
+  showStatus(isAppend ? '正在搜索新的新闻（避开已有来源），约需 30 秒...' : '正在搜索最新新闻并生成简报，约需 30 秒...', 'loading');
+
+  // Build exclude note
+  var excludeNote = '';
+  if (existingUrls.length > 0) {
+    excludeNote = '\n\nIMPORTANT - ALREADY USED SOURCE URLs (do NOT use these or any article from these pages):\n'
+      + existingUrls.map(function(u){ return '- ' + u; }).join('\n')
+      + '\n\nYou MUST find completely different articles from different URLs.';
+  }
+
+  var sys = 'You are a professional news editor for digital marketing, AI, and ecommerce.\n'
+    + 'Use web_search to find REAL news articles from the past 7 days.\n'
+    + 'Rules:\n'
+    + '1. Only include news with a VERIFIED, working URL from a real reputable source\n'
+    + '2. Summary must accurately reflect the actual article content (150-200 chars)\n'
+    + '3. Skip regions or categories where no real news is found - never invent\n'
+    + '4. 1-3 items per region maximum\n'
+    + '5. After searching, output ONLY a single valid JSON object. No explanation, no preamble.\n\n'
+    + 'JSON format:\n'
+    + '{"page_title":"YYYYMMDD - key headline Chinese max 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"Chinese comment from digital marketer perspective max 150 chars"}\n'
+    + 'Each item: {"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Detailed Chinese summary 150-200 chars","url":"REAL verified URL"}\n'
+    + 'FINAL OUTPUT MUST BE ONLY THE JSON OBJECT. START WITH { AND END WITH }.';
+
+  var usr = 'Today is ' + getToday() + '. Find real news from the past 7 days on AI, ecommerce, digital marketing across EU/US, China, Southeast Asia, Japan. All content in Simplified Chinese. Only include items with real verified URLs.' + excludeNote;
+
+  var tools = [{type:'web_search_20250305', name:'web_search'}];
+
+  try {
+    var text = await callClaude(sys, usr, tools);
+    if (!text) throw new Error('未收到有效响应');
+    var newsData = safeParseJSON(text);
+    newsData._date = dk0; newsData._month = mk0; newsData._ts = Date.now();
+    mergeIntoArchive(dk0, mk0, newsData);
+    // Reload merged data
+    var merged = loadArchive()[mk0][dk0];
+    currentNewsData = merged; currentLang = 'zh-CN';
+    showDetail(dk0, merged);
+    rebuildSidebar();
+    showStatus(isAppend ? '✓ 新内容已追加到今日归档' : '✓ 生成完成，已保存到归档', 'ok');
+    setTimeout(hideStatus, 2500);
+    document.getElementById('translateWrap').style.display = 'flex';
+    document.getElementById('translateLabel').textContent = '翻译';
+  } catch(e) {
+    showStatus('✕ 失败：' + e.message, 'err');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg> 生成今日新闻';
+}
+
+// ── Archive view ──
+function showArchive() {
+  currentNewsId = null; currentNewsData = null;
+  document.getElementById('translateWrap').style.display = 'none';
+  hideStatus();
+  var archive = loadArchive();
+  var months  = Object.keys(archive).sort(function(a,b){ return b.localeCompare(a); });
+  var html = '';
+  if (!months.length) {
+    html = '<div class="empty"><div class="empty-icon">📰</div><div class="empty-text">还没有新闻记录</div><div class="empty-sub">点击右上角「生成今日新闻」开始</div></div>';
+  } else {
+    months.forEach(function(mk) {
+      var days = Object.keys(archive[mk]).sort(function(a,b){ return b.localeCompare(a); });
+      html += '<div class="archive-month">';
+      html += '<div class="archive-month-header" onclick="toggleAM(this)"><span class="arr">▶</span><span class="archive-month-title">📂 ' + fmtMonth(mk) + '</span><span class="archive-month-count">' + days.length + ' 篇</span></div>';
+      html += '<div class="archive-month-body">';
+      days.forEach(function(dk) {
+        var item  = archive[mk][dk];
+        var title = (item.page_title || dk + ' - 每日简报').replace(/^\d{8} - /, '');
+        html += '<div class="archive-day-item" onclick="showDetail(\'' + dk + '\', null)">';
+        html += '<span class="archive-day-date">' + fmtDate(dk) + '</span>';
+        html += '<span class="archive-day-title">' + esc(title) + '</span>';
+        html += '<span style="color:var(--text3);font-size:11px;">›</span>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    });
+  }
+  html += buildHighlightsHTML();
+  document.getElementById('mainContent').innerHTML = html;
+  var first = document.querySelector('.archive-month-header');
+  if (first) toggleAM(first);
+}
+
+function toggleAM(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
+
+// ── Highlights ──
+function buildHighlightsHTML() {
+  var bms   = loadBookmarks();
+  var bList = Object.values(bms).sort(function(a,b){ return (b.savedAt||0) - (a.savedAt||0); });
+  var html  = '<div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-title">⭐ 重点新闻 HIGHLIGHTS</div><div class="section-divider-line"></div></div>';
+  if (!bList.length) {
+    html += '<div class="empty" style="padding:40px 20px;"><div class="empty-icon" style="font-size:32px;">⭐</div><div class="empty-text" style="font-size:13px;">还没有收藏的重点新闻</div><div class="empty-sub">在新闻详情页点击 ☆ 图标收藏</div></div>';
+    return html;
+  }
+  var byMonth = {};
+  bList.forEach(function(b){ if (!byMonth[b.mk]) byMonth[b.mk] = []; byMonth[b.mk].push(b); });
+  Object.keys(byMonth).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(mk) {
+    var items = byMonth[mk];
+    html += '<div class="highlights-month">';
+    html += '<div class="highlights-month-header" onclick="toggleHL(this)"><span class="arr">▶</span><span class="highlights-month-title">⭐ ' + fmtMonth(mk) + ' 重点新闻</span><span class="highlights-month-count">' + items.length + ' 条</span></div>';
+    html += '<div class="highlights-month-body">';
+    html += '<div class="highlights-month-actions"><button class="btn btn-primary btn-sm" onclick="showSummaryPage(\'' + mk + '\')">📋 生成本月重点新闻总结</button></div>';
+    html += '<div class="highlights-grid">';
+    items.forEach(function(b) {
+      var cat = CATS[b.category] || CATS.ai;
+      html += '<div class="highlight-card" id="hlcard-' + b.id + '">';
+      html += '<div class="highlight-card-top">';
+      html += '<span class="highlight-badge ' + cat.cls + '">' + cat.label + '</span>';
+      html += '<span class="highlight-card-title">' + esc(b.title) + '</span>';
+      html += '<span class="highlight-remove" onclick="removeBookmark(\'' + b.id + '\')" title="取消收藏">✕</span>';
+      html += '</div>';
+      html += '<div style="font-size:11px;color:var(--text3);margin-top:6px;">' + fmtDate(b.dk) + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div></div>';
+  });
+  return html;
+}
+
+function renderHighlightsSection() {
+  var el = document.querySelector('.section-divider');
+  if (!el) return;
+  var toRemove = [];
+  while (el) { toRemove.push(el); el = el.nextElementSibling; }
+  toRemove.forEach(function(e){ e.remove(); });
+  var div = document.createElement('div');
+  div.innerHTML = buildHighlightsHTML();
+  while (div.firstChild) document.getElementById('mainContent').appendChild(div.firstChild);
+}
+
+function toggleHL(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
+
+function scrollToHighlights() {
+  showArchive();
+  setTimeout(function(){ var el = document.querySelector('.section-divider'); if (el) el.scrollIntoView({behavior:'smooth'}); }, 100);
+}
+
+function removeBookmark(bid) {
+  var b = loadBookmarks();
+  delete b[bid];
+  saveBookmarks(b);
+  var parts = bid.split('__');
+  if (parts.length === 3) {
+    var btnEl = document.getElementById('bmbtn-' + parts[0] + '_' + parts[1] + '_' + parts[2]);
+    if (btnEl) { btnEl.classList.remove('active'); var card = btnEl.closest('.card'); if (card) card.classList.remove('bookmarked'); }
+  }
+  renderHighlightsSection();
+}
+
+// ── Detail view ──
+function showDetail(dk, data) {
+  currentNewsId = dk;
+  if (!data) { var a = loadArchive(); data = a[dk.slice(0,6)] && a[dk.slice(0,6)][dk]; }
+  if (!data) { showArchive(); return; }
+  currentNewsData = data; currentLang = 'zh-CN';
+  document.getElementById('translateWrap').style.display = 'flex';
+  document.getElementById('translateLabel').textContent = '翻译';
+  renderDetail(data);
+  updateSidebarActive(dk);
+}
+
+function renderDetail(data) {
+  var dk   = data._date || getTodayStr();
+  var html = '<div class="detail-back" onclick="showArchive()">← 返回归档</div>';
+  html += '<div class="detail-title">' + esc(data.page_title || dk + ' - 每日简报') + '</div>';
+  html += '<div class="detail-meta">' + fmtDate(dk) + '</div>';
+  REGIONS.forEach(function(r) {
+    var items = data.regions && data.regions[r.key];
+    if (!items || !items.length) return;
+    html += '<div class="region-block"><div class="region-header">' + r.label + '</div>';
+    items.forEach(function(item, idx) {
+      var cat      = CATS[item.category] || CATS.ai;
+      var cid      = r.key + '_' + idx;
+      var bm       = isBookmarked(dk, r.key, idx);
+      var hasDetail = !!(item.summary || item.url);
+      html += '<div class="card' + (bm ? ' bookmarked' : '') + '">';
+      html += '<div class="card-top">';
+      html += '<span class="badge ' + cat.cls + '">' + cat.label + '</span>';
+      html += '<span class="card-title">' + esc(item.title) + '</span>';
+      html += '<div class="card-actions">';
+      html += '<span class="card-icon-btn bookmark-btn' + (bm ? ' active' : '') + '" id="bmbtn-' + dk + '_' + r.key + '_' + idx + '" onclick="handleBookmark(\'' + dk + '\',\'' + r.key + '\',' + idx + ')" title="' + (bm ? '取消收藏' : '收藏') + '">';
+      html += '<svg width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+      html += '</span>';
+      if (hasDetail) {
+        html += '<span class="card-icon-btn expand-btn" id="ebtn-' + cid + '" onclick="toggleExpand(\'' + cid + '\')" title="展开详情">';
+        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+        html += '</span>';
+      }
+      html += '</div></div>';
+      if (hasDetail) {
+        html += '<div class="card-detail" id="edet-' + cid + '">';
+        if (item.summary) html += '<p class="card-body">' + esc(item.summary) + '</p>';
+        if (item.url) html += '<a class="card-url" href="' + esc(item.url) + '" target="_blank" rel="noopener"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' + esc(item.url) + '</a>';
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  if (data.editorial) {
+    html += '<div class="editorial"><div class="editorial-label">✍️ 编辑总评 — 数字营销视角</div><p class="editorial-text">' + esc(data.editorial) + '</p></div>';
+  }
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ── Summary page ──
+function showSummaryPage(mk) {
+  document.getElementById('translateWrap').style.display = 'none';
+  var bms   = loadBookmarks();
+  var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0) - (b.savedAt||0); });
+  var html  = '<div class="detail-back" onclick="showArchive()">← 返回</div>';
+  html += '<div class="detail-title">⭐ ' + fmtMonth(mk) + ' 重点新闻总结</div>';
+  html += '<div class="detail-meta" style="margin-bottom:20px;">共 ' + items.length + ' 条收藏新闻</div>';
+  if (!items.length) {
+    html += '<div class="empty"><div class="empty-icon">⭐</div><div class="empty-text">本月暂无收藏新闻</div></div>';
+    document.getElementById('mainContent').innerHTML = html; return;
+  }
+  html += '<div style="margin-bottom:24px;">';
+  html += '<button class="btn btn-primary" id="btnSummary" onclick="generateSummary(\'' + mk + '\')">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+  html += '生成重点新闻详细总结</button>';
+  html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">点击后 AI 将对每条新闻生成 3 段以上的详细分析</div>';
+  html += '</div>';
+  items.forEach(function(b, i) {
+    var cat = CATS[b.category] || CATS.ai;
+    html += '<div class="summary-item" id="sitem-' + b.id + '">';
+    html += '<div class="summary-item-header"><span class="summary-item-num">' + (i+1) + '</span>';
+    html += '<div><div class="summary-item-title">' + esc(b.title) + '</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-top:5px;">';
+    html += '<span class="badge ' + cat.cls + '" style="font-size:9px;">' + cat.label + '</span>';
+    html += '<span style="font-size:11px;color:var(--text3);">' + fmtDate(b.dk) + '</span>';
+    if (b.url) html += '<a href="' + esc(b.url) + '" target="_blank" rel="noopener" style="font-size:11px;color:var(--text3);">原文 ↗</a>';
+    html += '</div></div></div>';
+    html += '<div id="spara-' + b.id + '" style="font-size:13px;color:var(--text3);font-style:italic;">点击「生成重点新闻详细总结」查看 AI 深度分析</div>';
+    html += '<div class="summary-note-label">💭 我的想法</div>';
+    html += '<textarea class="summary-note-input" id="note-' + b.id + '" placeholder="在此记录你对这条新闻的想法、观点或行动计划...">' + esc(getNote(b.id)) + '</textarea>';
+    html += '<button class="summary-note-save" onclick="saveMyNote(\'' + b.id + '\')">保存想法</button>';
+    html += '<div class="summary-note-saved" id="saved-' + b.id + '">✓ 已保存</div>';
+    html += '</div>';
+  });
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function saveMyNote(bid) {
+  var ta = document.getElementById('note-' + bid);
+  if (!ta) return;
+  saveNote(bid, ta.value);
+  var saved = document.getElementById('saved-' + bid);
+  if (saved) { saved.style.display = 'block'; setTimeout(function(){ saved.style.display = 'none'; }, 2000); }
+}
+
+async function generateSummary(mk) {
+  var btn = document.getElementById('btnSummary');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> AI 生成详细总结中，约需 30 秒...';
+  showStatus('正在对每条重点新闻进行深度分析...', 'loading');
+  var bms   = loadBookmarks();
+  var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0) - (b.savedAt||0); });
+  var sys = 'You are a senior digital marketing analyst. For each news item, write a detailed analysis in Simplified Chinese.\n'
+    + 'For EACH item write AT LEAST 3 paragraphs:\n'
+    + 'Para 1: What happened - detailed factual summary\n'
+    + 'Para 2: Why it matters - industry implications for AI/ecommerce/digital marketing\n'
+    + 'Para 3: Action points - specific recommendations for digital marketing practitioners\n'
+    + 'Add more paragraphs if needed.\n\n'
+    + 'Output ONLY valid JSON:\n'
+    + '{"analyses":[{"id":"bookmark_id","paragraphs":["para1","para2","para3"]}]}\n'
+    + 'Output ONLY the JSON.';
+  var newsText = items.map(function(b, i){
+    return (i+1) + '. [ID:' + b.id + '] ' + b.title + (b.summary ? '\nSummary: ' + b.summary : '') + (b.url ? '\nURL: ' + b.url : '');
+  }).join('\n\n');
+  var usr = 'Analyze these ' + items.length + ' bookmarked news items in depth (at least 3 paragraphs each):\n\n' + newsText;
+  try {
+    var raw    = await callClaude(sys, usr, null);
+    var result = safeParseJSON(raw);
+    if (result && result.analyses) {
+      result.analyses.forEach(function(a) {
+        var el = document.getElementById('spara-' + a.id);
+        if (el && a.paragraphs && a.paragraphs.length) {
+          el.innerHTML = a.paragraphs.map(function(p){ return '<p class="summary-para">' + esc(p) + '</p>'; }).join('');
+        }
+      });
+    }
+    showStatus('✓ 深度总结生成完成', 'ok');
+    setTimeout(hideStatus, 2000);
+  } catch(e) { showStatus('✕ 生成失败：' + e.message, 'err'); }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 重新生成总结';
+}
+
+// ── Sidebar ──
+function rebuildSidebar() {
+  var archive = loadArchive();
+  var months  = Object.keys(archive).sort(function(a,b){ return b.localeCompare(a); });
+  var mk0     = getMonthKey();
+  var html    = '';
+  months.forEach(function(mk) {
+    var days = Object.keys(archive[mk]).sort(function(a,b){ return b.localeCompare(a); });
+    var open = mk === mk0;
+    html += '<div class="month-toggle' + (open ? ' open' : '') + '" onclick="toggleSM(this)"><span class="arr">▶</span> ' + fmtMonth(mk) + '</div>';
+    html += '<div class="month-days' + (open ? ' open' : '') + '">';
+    days.forEach(function(dk) {
+      html += '<div class="day-link' + (dk === currentNewsId ? ' active' : '') + '" onclick="showDetail(\'' + dk + '\', null)">' + fmtDate(dk).replace(/\d{4}年/, '') + '</div>';
+    });
+    html += '</div>';
+  });
+  document.getElementById('sidebarArchive').innerHTML = html || '<div style="font-size:12px;color:var(--text3);padding:8px;">暂无记录</div>';
+}
+
+function toggleSM(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
+function updateSidebarActive(dk) {
+  document.querySelectorAll('.day-link').forEach(function(el){
+    el.classList.toggle('active', el.textContent.trim() === fmtDate(dk).replace(/\d{4}年/, ''));
+  });
+}
+
+// ── Init ──
+function init() {
+  rebuildSidebar();
+  if (!getApiKey()) {
+    document.getElementById('mainContent').innerHTML = '<div class="empty"><div class="empty-icon">⚙️</div><div class="empty-text">请先配置 API Key</div><div class="empty-sub" style="margin-top:14px;"><button class="btn btn-primary btn-sm" onclick="openSettings()">打开设置</button></div></div>';
+  } else {
+    showArchive();
+  }
+}
+init();
 </script>
 </body>
 </html>
