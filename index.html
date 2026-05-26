@@ -11,7 +11,9 @@
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.25;pointer-events:none;z-index:0;}
 .app{position:relative;z-index:1;display:flex;min-height:100vh;}
-.sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+
+/* SIDEBAR */
+.sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto;}
 .main{flex:1;padding:40px 48px 80px;min-width:0;}
 @media(max-width:768px){.sidebar{display:none;}.main{padding:24px 16px 60px;}}
 .sidebar-logo{display:flex;align-items:center;gap:10px;padding:6px 8px;margin-bottom:14px;}
@@ -20,6 +22,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .sidebar-section{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;padding:4px 8px;margin-top:10px;}
 .sidebar-nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);cursor:pointer;font-size:12px;color:var(--text2);transition:background 0.1s;}
 .sidebar-nav-item:hover{background:var(--surface2);color:var(--text);}
+.sidebar-nav-item.active{color:var(--accent);background:var(--surface2);}
 .month-toggle{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--rs);cursor:pointer;font-size:12px;font-weight:500;color:var(--text2);transition:background 0.1s;user-select:none;}
 .month-toggle:hover{background:var(--surface2);}
 .month-toggle .arr{font-size:9px;transition:transform 0.2s;}
@@ -29,10 +32,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .day-link{display:block;padding:4px 8px;border-radius:var(--rs);cursor:pointer;font-size:11px;color:var(--text3);transition:background 0.1s,color 0.1s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .day-link:hover{background:var(--surface2);color:var(--text2);}
 .day-link.active{color:var(--accent);}
+
+/* HEADER */
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
 .page-title{font-family:'Noto Serif SC',serif;font-size:24px;font-weight:600;}
 .page-sub{font-size:11px;color:var(--text2);margin-top:4px;letter-spacing:0.06em;}
 .header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+/* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;transition:opacity 0.15s,transform 0.1s;border:none;white-space:nowrap;}
 .btn:active{transform:scale(0.97);}
 .btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
@@ -45,6 +52,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .spinner-light{border-color:var(--border);border-top-color:var(--text2);}
 @keyframes spin{to{transform:rotate(360deg);}}
 .status-bar{display:none;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;color:var(--text2);margin-bottom:20px;}
+
+/* SEARCH */
+.search-wrap{display:flex;align-items:center;gap:6px;}
+.search-input{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:6px 12px;color:var(--text);font-size:13px;outline:none;width:170px;transition:border-color 0.15s,width 0.2s;}
+.search-input:focus{border-color:var(--accent);width:210px;}
+.search-input::placeholder{color:var(--text3);}
+
+/* TRANSLATE */
 .translate-wrap{position:relative;}
 .translate-btn{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text);border:1px solid var(--border);}
 .translate-btn:hover{border-color:var(--text2);}
@@ -52,6 +67,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .translate-dropdown.open{display:block;}
 .translate-option{padding:10px 16px;font-size:13px;cursor:pointer;color:var(--text2);}
 .translate-option:hover{background:var(--surface2);color:var(--text);}
+
+/* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px;width:100%;max-width:480px;margin:16px;}
@@ -64,10 +81,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .field-input::placeholder{color:var(--text3);}
 .field-hint{font-size:11px;color:var(--text3);line-height:1.5;}
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+
+/* EMPTY */
 .empty{text-align:center;padding:80px 20px;}
 .empty-icon{font-size:44px;margin-bottom:16px;opacity:0.3;}
 .empty-text{font-size:15px;color:var(--text2);margin-bottom:8px;}
 .empty-sub{font-size:13px;color:var(--text3);}
+
+/* ARCHIVE */
 .archive-month{margin-bottom:8px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .archive-month-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;background:var(--surface);transition:background 0.1s;user-select:none;}
 .archive-month-header:hover{background:var(--surface2);}
@@ -82,6 +103,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .archive-day-item:hover{background:var(--surface2);}
 .archive-day-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);flex-shrink:0;width:76px;}
 .archive-day-title{font-size:13px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* DETAIL */
 .detail-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;margin-bottom:16px;padding:5px 10px;border-radius:var(--rs);}
 .detail-back:hover{background:var(--surface);}
 .detail-title{font-family:'Noto Serif SC',serif;font-size:20px;font-weight:600;margin-bottom:5px;}
@@ -89,6 +112,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .region-block{margin-bottom:26px;}
 .region-header{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
 .region-header::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* NEWS CARD */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;margin-bottom:9px;transition:border-color 0.15s;}
 .card:hover{border-color:var(--text3);}
 .card.bookmarked{border-color:rgba(232,201,122,0.4);}
@@ -114,6 +139,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .editorial{background:var(--surface);border-left:3px solid var(--accent);border-radius:var(--r);padding:16px 18px;margin-top:22px;}
 .editorial-label{font-size:11px;font-weight:500;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;}
 .editorial-text{font-size:13px;color:var(--text);line-height:1.8;}
+
+/* HIGHLIGHTS */
 .section-divider{display:flex;align-items:center;gap:12px;margin:48px 0 24px;}
 .section-divider-line{flex:1;height:1px;background:var(--border);}
 .section-divider-title{font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;}
@@ -134,6 +161,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .highlight-remove{cursor:pointer;color:var(--text3);font-size:14px;padding:2px 4px;border-radius:3px;flex-shrink:0;}
 .highlight-remove:hover{color:var(--danger);}
 .highlight-badge{font-size:9px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+
+/* SUMMARY PAGE */
 .summary-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-bottom:16px;}
 .summary-item-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
 .summary-item-num{width:26px;height:26px;background:var(--accent);color:#0e0e10;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
@@ -146,6 +175,50 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .summary-note-save{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--rs);font-size:12px;font-weight:500;cursor:pointer;background:var(--surface);color:var(--text2);border:1px solid var(--border);margin-top:8px;}
 .summary-note-save:hover{border-color:var(--accent);color:var(--accent);}
 .summary-note-saved{color:var(--success);font-size:12px;margin-top:6px;display:none;}
+
+/* URL SUMMARIZER */
+.url-summarizer{display:flex;height:calc(100vh - 120px);gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.url-toc{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;transition:width 0.2s;}
+.url-toc.collapsed{width:0;border:none;}
+.url-toc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;position:sticky;top:0;background:var(--surface);z-index:1;}
+.toc-toggle-btn{cursor:pointer;color:var(--text3);padding:3px;border-radius:3px;transition:color 0.1s;}
+.toc-toggle-btn:hover{color:var(--text2);}
+.url-toc-content{padding:12px 8px;}
+.toc-group{}
+.toc-group-title{font-size:12px;font-weight:600;color:var(--text);padding:6px 8px;cursor:pointer;border-radius:var(--rs);display:flex;align-items:center;gap:6px;user-select:none;}
+.toc-group-title:hover{background:var(--surface2);}
+.toc-group-title .arr{font-size:8px;transition:transform 0.2s;color:var(--text3);}
+.toc-group-title.open .arr{transform:rotate(90deg);}
+.toc-items{display:none;padding-left:16px;}
+.toc-items.open{display:block;}
+.toc-item{font-size:11px;color:var(--text3);padding:4px 8px;border-radius:var(--rs);cursor:pointer;display:block;transition:color 0.1s,background 0.1s;}
+.toc-item:hover{color:var(--text2);background:var(--surface2);}
+.toc-item.active{color:var(--accent);}
+.url-content{flex:1;overflow-y:auto;padding:28px 32px;}
+.url-input-area{padding:28px 32px;overflow-y:auto;width:100%;}
+.url-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.url-field{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:9px 12px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;outline:none;}
+.url-field:focus{border-color:var(--accent);}
+.url-field::placeholder{color:var(--text3);}
+.url-remove-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);border-radius:4px;flex-shrink:0;}
+.url-remove-btn:hover{color:var(--danger);background:rgba(232,122,122,0.1);}
+.url-add-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border:1px dashed var(--border);border-radius:var(--rs);color:var(--text3);cursor:pointer;font-size:13px;transition:color 0.1s,border-color 0.1s;background:none;}
+.url-add-btn:hover{color:var(--text2);border-color:var(--text2);}
+.summ-section{margin-bottom:32px;scroll-margin-top:20px;}
+.summ-section-title{font-family:'Noto Serif SC',serif;font-size:17px;font-weight:600;color:var(--text);margin-bottom:6px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.summ-subsection{margin-bottom:20px;}
+.summ-subsection-title{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+.summ-para{font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:10px;padding:12px 14px;background:var(--surface2);border-radius:var(--rs);}
+.summ-sources{margin-top:10px;padding:10px 14px;background:rgba(232,201,122,0.05);border:1px solid rgba(232,201,122,0.15);border-radius:var(--rs);}
+.summ-source-label{font-size:10px;font-weight:600;color:var(--accent);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;}
+.summ-source-url{display:block;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-decoration:none;word-break:break-all;margin-bottom:3px;}
+.summ-source-url:hover{color:var(--text2);}
+
+/* SUMM ARCHIVE */
+.summ-archive-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;}
+.summ-archive-card:hover{border-color:var(--text3);}
+.summ-archive-card-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.summ-archive-card-meta{font-size:11px;color:var(--text3);}
 </style>
 </head>
 <body>
@@ -156,8 +229,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div class="sidebar-logo-name">Daily News</div>
     </div>
     <div class="sidebar-section">导航</div>
-    <div class="sidebar-nav-item" onclick="showArchive()">📰 新闻归档</div>
-    <div class="sidebar-nav-item" onclick="scrollToHighlights()">⭐ 重点新闻</div>
+    <div class="sidebar-nav-item" id="nav-archive" onclick="showArchive()">📂 归档</div>
+    <div class="sidebar-nav-item" id="nav-highlights" onclick="scrollToHighlights()">⭐ 重点新闻</div>
+    <div class="sidebar-nav-item" id="nav-summarizer" onclick="showSummarizer()">📝 新闻总结</div>
+    <div class="sidebar-nav-item" id="nav-summ-archive" onclick="showSummArchive()">🗂️ 总结收藏</div>
     <div class="sidebar-section">归档</div>
     <div id="sidebarArchive"></div>
   </div>
@@ -181,6 +256,25 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
             <div class="translate-option" onclick="doTranslate('ja','日本語')">🇯🇵 日本語</div>
           </div>
         </div>
+        <div class="search-wrap" id="searchWrap">
+          <input class="search-input" type="text" id="searchInput" placeholder="搜索关键词...">
+          <button class="btn btn-ghost btn-sm" id="btnSearch" onclick="searchNews()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            搜索
+          </button>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btnSummAnalyze" style="display:none;" onclick="analyzeSummarizer()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          总结分析
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btnDownload" style="display:none;" onclick="downloadWord()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          下载 Word
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btnSaveReport" style="display:none;" onclick="saveCurrentReport()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          收藏总结
+        </button>
         <button class="btn btn-primary" id="btnGen" onclick="generateNews()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg>
           生成今日新闻
@@ -219,6 +313,7 @@ var SK_API  = 'dn_apikey';
 var SK_WRK  = 'dn_worker';
 var SK_BM   = 'dn_bookmarks';
 var SK_NOTE = 'dn_notes';
+var SK_SUMM = 'dn_summ_archive';
 
 var REGIONS = [
   {key:'eu_us',  label:'🌎 欧美地区'},
@@ -235,8 +330,10 @@ var CATS = {
 var currentNewsId   = null;
 var currentNewsData = null;
 var currentLang     = 'zh-CN';
+var currentView     = 'archive';
+var currentReportData = null;
 
-// ── Date helpers ──
+// ── Date ──
 function getToday() {
   var d = new Date();
   return d.getFullYear() + '年' + String(d.getMonth()+1).padStart(2,'0') + '月' + String(d.getDate()).padStart(2,'0') + '日';
@@ -251,26 +348,22 @@ function getMonthKey() {
 }
 function fmtMonth(mk) { return mk.slice(0,4) + '年' + mk.slice(4,6) + '月'; }
 function fmtDate(dk)  { return dk.slice(0,4) + '年' + dk.slice(4,6) + '月' + dk.slice(6,8) + '日'; }
+function nowTs() { return new Date().toLocaleString('zh-CN'); }
 
-// ── Archive storage ──
-function loadArchive() {
-  try { return JSON.parse(localStorage.getItem(SK_NEWS) || '{}'); } catch(e) { return {}; }
-}
+// ── Storage ──
+function loadArchive() { try { return JSON.parse(localStorage.getItem(SK_NEWS) || '{}'); } catch(e) { return {}; } }
 function saveArchive(a) { localStorage.setItem(SK_NEWS, JSON.stringify(a)); }
 
 function mergeIntoArchive(dk, mk, newData) {
   var a = loadArchive();
   if (!a[mk]) a[mk] = {};
   if (!a[mk][dk]) {
-    // First time today: just save
     a[mk][dk] = newData;
   } else {
-    // Subsequent times: merge, dedup by URL then title
     var existing = a[mk][dk];
     var merged = JSON.parse(JSON.stringify(existing));
     if (!merged.regions) merged.regions = {};
-    var rks = ['eu_us','china','sea','japan'];
-    rks.forEach(function(rk) {
+    ['eu_us','china','sea','japan'].forEach(function(rk) {
       var newItems = (newData.regions && newData.regions[rk]) || [];
       if (!merged.regions[rk]) merged.regions[rk] = [];
       var usedUrls   = merged.regions[rk].map(function(x){ return x.url; }).filter(Boolean);
@@ -285,7 +378,6 @@ function mergeIntoArchive(dk, mk, newData) {
         }
       });
     });
-    // Append editorial
     if (newData.editorial && newData.editorial !== existing.editorial) {
       merged.editorial = (existing.editorial ? existing.editorial + '\n\n【补充】' : '') + newData.editorial;
     }
@@ -294,41 +386,25 @@ function mergeIntoArchive(dk, mk, newData) {
   saveArchive(a);
 }
 
-// ── Bookmark storage ──
-function loadBookmarks() {
-  try { return JSON.parse(localStorage.getItem(SK_BM) || '{}'); } catch(e) { return {}; }
-}
+function loadBookmarks() { try { return JSON.parse(localStorage.getItem(SK_BM) || '{}'); } catch(e) { return {}; } }
 function saveBookmarks(b) { localStorage.setItem(SK_BM, JSON.stringify(b)); }
-
 function bmId(dk, rk, idx) { return dk + '__' + rk + '__' + idx; }
-
-function isBookmarked(dk, rk, idx) {
-  return !!(loadBookmarks()[bmId(dk,rk,idx)]);
-}
-
+function isBookmarked(dk, rk, idx) { return !!(loadBookmarks()[bmId(dk,rk,idx)]); }
 function toggleBookmark(dk, rk, idx, item) {
-  var b   = loadBookmarks();
+  var b = loadBookmarks();
   var bid = bmId(dk, rk, idx);
-  if (b[bid]) {
-    delete b[bid];
-    saveBookmarks(b);
-    return false;
-  } else {
-    b[bid] = {
-      id: bid, dk: dk, mk: dk.slice(0,6),
-      regionKey: rk, category: item.category,
-      title: item.title, summary: item.summary,
-      url: item.url, savedAt: Date.now()
-    };
-    saveBookmarks(b);
-    return true;
-  }
+  if (b[bid]) { delete b[bid]; saveBookmarks(b); return false; }
+  b[bid] = { id: bid, dk: dk, mk: dk.slice(0,6), regionKey: rk, category: item.category, title: item.title, summary: item.summary, url: item.url, savedAt: Date.now() };
+  saveBookmarks(b);
+  return true;
 }
 
-// ── Note storage ──
 function loadNotes() { try { return JSON.parse(localStorage.getItem(SK_NOTE) || '{}'); } catch(e) { return {}; } }
 function saveNote(bid, text) { var n = loadNotes(); n[bid] = text; localStorage.setItem(SK_NOTE, JSON.stringify(n)); }
 function getNote(bid) { return loadNotes()[bid] || ''; }
+
+function loadSummArchive() { try { return JSON.parse(localStorage.getItem(SK_SUMM) || '{}'); } catch(e) { return {}; } }
+function saveSummArchive(a) { localStorage.setItem(SK_SUMM, JSON.stringify(a)); }
 
 // ── Settings ──
 function openSettings() {
@@ -360,10 +436,38 @@ function showStatus(msg, type) {
 }
 function hideStatus() { document.getElementById('statusBar').style.display = 'none'; }
 
+// ── Nav active state ──
+function setNav(id) {
+  ['nav-archive','nav-highlights','nav-summarizer','nav-summ-archive'].forEach(function(n) {
+    var el = document.getElementById(n);
+    if (el) el.classList.toggle('active', n === id);
+  });
+}
+
+// ── UI toggles ──
+function setHeaderMode(mode) {
+  // mode: 'news' | 'summarizer' | 'report'
+  var searchWrap   = document.getElementById('searchWrap');
+  var btnGen       = document.getElementById('btnGen');
+  var btnAnalyze   = document.getElementById('btnSummAnalyze');
+  var btnDownload  = document.getElementById('btnDownload');
+  var btnSave      = document.getElementById('btnSaveReport');
+  var translateWrap = document.getElementById('translateWrap');
+  searchWrap.style.display   = mode === 'news' ? 'flex' : 'none';
+  btnGen.style.display       = mode === 'news' ? '' : 'none';
+  btnAnalyze.style.display   = mode === 'summarizer' ? '' : 'none';
+  btnDownload.style.display  = mode === 'report' ? '' : 'none';
+  btnSave.style.display      = mode === 'report' ? '' : 'none';
+  if (mode !== 'news') { translateWrap.style.display = 'none'; }
+}
+
 // ── Translate ──
 function toggleTranslateMenu() { document.getElementById('translateDropdown').classList.toggle('open'); }
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.translate-wrap')) document.getElementById('translateDropdown').classList.remove('open');
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.activeElement === document.getElementById('searchInput')) searchNews();
 });
 
 async function doTranslate(lang, label) {
@@ -389,14 +493,9 @@ async function doTranslate(lang, label) {
 async function callClaude(system, user, tools) {
   var key = getApiKey();
   if (!key) { openSettings(); throw new Error('请先在设置中填入 Anthropic API Key'); }
-  var payload = {
-    apiKey: key, model: 'claude-haiku-4-5-20251001', max_tokens: 4096,
-    system: system, messages: [{role:'user', content:user}]
-  };
+  var payload = { apiKey: key, model: 'claude-haiku-4-5-20251001', max_tokens: 4096, system: system, messages: [{role:'user', content:user}] };
   if (tools) payload.tools = tools;
-  var res = await fetch(getWorker(), {
-    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
-  });
+  var res = await fetch(getWorker(), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   if (!res.ok) { var e = await res.json().catch(function(){return{};}); throw new Error((e.error && e.error.message) || ('Error ' + res.status)); }
   var data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
@@ -425,18 +524,51 @@ function toggleExpand(cid) {
 }
 
 function handleBookmark(dk, rk, idx) {
-  // Get item from current news data
   var item = {};
   if (currentNewsData && currentNewsData.regions && currentNewsData.regions[rk]) {
     item = currentNewsData.regions[rk][idx] || {};
   }
   var active = toggleBookmark(dk, rk, idx, item);
-  var btnEl  = document.getElementById('bmbtn-' + dk + '_' + rk + '_' + idx);
+  var btnEl = document.getElementById('bmbtn-' + dk + '_' + rk + '_' + idx);
   if (btnEl) {
     btnEl.classList.toggle('active', active);
     var card = btnEl.closest('.card');
     if (card) card.classList.toggle('bookmarked', active);
   }
+}
+
+function buildCard(item, idx, dk, rk) {
+  var cat = CATS[item.category] || CATS.ai;
+  var cid = rk + '_' + idx;
+  var bm  = isBookmarked(dk, rk, idx);
+  var hasDetail = !!(item.summary || item.url);
+  var html = '';
+  html += '<div class="card' + (bm ? ' bookmarked' : '') + '">';
+  html += '<div class="card-top">';
+  html += '<span class="badge ' + cat.cls + '">' + cat.label + '</span>';
+  html += '<span class="card-title">' + esc(item.title) + '</span>';
+  html += '<div class="card-actions">';
+  html += '<span class="card-icon-btn bookmark-btn' + (bm ? ' active' : '') + '" id="bmbtn-' + dk + '_' + rk + '_' + idx + '" onclick="handleBookmark(\'' + dk + '\',\'' + rk + '\',' + idx + ')" title="收藏">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  html += '</span>';
+  if (hasDetail) {
+    html += '<span class="card-icon-btn expand-btn" id="ebtn-' + cid + '" onclick="toggleExpand(\'' + cid + '\')" title="展开">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    html += '</span>';
+  }
+  html += '</div></div>';
+  if (hasDetail) {
+    html += '<div class="card-detail" id="edet-' + cid + '">';
+    if (item.summary) html += '<p class="card-body">' + esc(item.summary) + '</p>';
+    if (item.url) {
+      html += '<a class="card-url" href="' + esc(item.url) + '" target="_blank" rel="noopener">';
+      html += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+      html += esc(item.url) + '</a>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 // ── Generate news ──
@@ -445,46 +577,37 @@ async function generateNews() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> 生成中...';
 
-  // Collect existing URLs from today to avoid duplicates
   var existingUrls = [];
   var archive = loadArchive();
-  var dk0 = getTodayStr();
-  var mk0 = getMonthKey();
+  var dk0 = getTodayStr(), mk0 = getMonthKey();
   var todayData = archive[mk0] && archive[mk0][dk0];
   if (todayData && todayData.regions) {
     ['eu_us','china','sea','japan'].forEach(function(rk) {
-      var items = todayData.regions[rk] || [];
-      items.forEach(function(it) { if (it.url) existingUrls.push(it.url); });
+      (todayData.regions[rk] || []).forEach(function(it) { if (it.url) existingUrls.push(it.url); });
     });
   }
   var isAppend = existingUrls.length > 0;
-  showStatus(isAppend ? '正在搜索新的新闻（避开已有来源），约需 30 秒...' : '正在搜索最新新闻并生成简报，约需 30 秒...', 'loading');
+  showStatus(isAppend ? '正在搜索新的新闻（避开已有来源）...' : '正在搜索最新新闻并生成简报，约需 30 秒...', 'loading');
 
-  // Build exclude note
-  // Build exclude list for system prompt
   var excludeSys = '';
   if (existingUrls.length > 0) {
-    excludeSys = '\nALREADY USED URLs (do NOT use these sources):\n'
-      + existingUrls.map(function(u){ return u; }).join('\n')
-      + '\nFind completely different articles from different URLs.';
+    excludeSys = '\nALREADY USED URLs - do NOT use these sources:\n' + existingUrls.join('\n') + '\nFind completely different articles.';
   }
 
   var sys = 'You are a professional news editor for digital marketing, AI, and ecommerce.\n'
     + 'Use web_search to find REAL news articles from the past 7 days.\n'
     + 'Rules:\n'
-    + '1. Only include news with a VERIFIED, working URL from a real reputable source\n'
-    + '2. Summary must accurately reflect the actual article content (150-200 chars)\n'
-    + '3. Skip regions or categories where no real news is found - never invent\n'
+    + '1. Only include news with a VERIFIED working URL from a real reputable source\n'
+    + '2. Summary must accurately reflect the actual article (150-200 chars)\n'
+    + '3. Skip regions/categories where no real news found - never invent\n'
     + '4. 1-3 items per region maximum\n'
-    + '5. After searching, output ONLY a single valid JSON object. No explanation, no preamble.\n'
-    + 'JSON format:\n'
-    + '{"page_title":"YYYYMMDD - key headline Chinese max 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"Chinese comment from digital marketer perspective max 150 chars"}\n'
-    + 'Each item: {"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Detailed Chinese summary 150-200 chars","url":"REAL verified URL"}\n'
-    + 'FINAL OUTPUT MUST BE ONLY THE JSON OBJECT. START WITH { AND END WITH }.'
+    + '5. After searching output ONLY valid JSON, no explanation\n'
+    + 'JSON: {"page_title":"YYYYMMDD - headline Chinese max 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"Chinese comment max 150 chars"}\n'
+    + 'Each item: {"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Chinese summary 150-200 chars","url":"REAL URL"}\n'
+    + 'OUTPUT ONLY THE JSON OBJECT.'
     + excludeSys;
 
-  var usr = 'Today is ' + getToday() + '. Find real news from the past 7 days on AI, ecommerce, digital marketing across EU/US, China, Southeast Asia, Japan. All content in Simplified Chinese. Only include items with real verified URLs.';
-
+  var usr = 'Today is ' + getToday() + '. Find real news from past 7 days on AI, ecommerce, digital marketing across EU/US, China, Southeast Asia, Japan. All content in Simplified Chinese.';
   var tools = [{type:'web_search_20250305', name:'web_search'}];
 
   try {
@@ -492,8 +615,9 @@ async function generateNews() {
     if (!text) throw new Error('未收到有效响应');
     var newsData = safeParseJSON(text);
     newsData._date = dk0; newsData._month = mk0; newsData._ts = Date.now();
+    // Fix: 日报 not 周报
+    if (newsData.page_title) newsData.page_title = newsData.page_title.replace(/周报/g, '日报');
     mergeIntoArchive(dk0, mk0, newsData);
-    // Reload merged data
     var merged = loadArchive()[mk0][dk0];
     currentNewsData = merged; currentLang = 'zh-CN';
     showDetail(dk0, merged);
@@ -502,18 +626,83 @@ async function generateNews() {
     setTimeout(hideStatus, 2500);
     document.getElementById('translateWrap').style.display = 'flex';
     document.getElementById('translateLabel').textContent = '翻译';
-  } catch(e) {
-    showStatus('✕ 失败：' + e.message, 'err');
-  }
+  } catch(e) { showStatus('✕ 失败：' + e.message, 'err'); }
 
   btn.disabled = false;
   btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg> 生成今日新闻';
 }
 
+// ── Search news ──
+async function searchNews() {
+  var keyword = document.getElementById('searchInput').value.trim();
+  if (!keyword) return;
+  var btn = document.getElementById('btnSearch');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner spinner-light"></span> 搜索中...';
+  document.getElementById('translateWrap').style.display = 'none';
+  showStatus('正在搜索「' + keyword + '」相关新闻，约需 30 秒...', 'loading');
+
+  var sys = 'You are a professional news editor. Search for news about a specific topic using web_search.\n'
+    + 'Search in English, Chinese AND Japanese to find international coverage.\n'
+    + 'Rules:\n'
+    + '1. Only include articles with VERIFIED working URLs from real reputable sources\n'
+    + '2. Find 3-8 relevant articles total\n'
+    + '3. Translate ALL output content to Simplified Chinese\n'
+    + '4. After searching output ONLY valid JSON, no explanation\n'
+    + 'JSON: {"results":[{"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Chinese summary 150-200 chars","url":"REAL URL","region":"eu_us|china|sea|japan"}]}\n'
+    + 'OUTPUT ONLY THE JSON OBJECT.';
+
+  var usr = 'Search keyword: ' + keyword + '\nSearch in English, Chinese, and Japanese. Translate all results to Simplified Chinese.';
+  var tools = [{type:'web_search_20250305', name:'web_search'}];
+
+  try {
+    var text = await callClaude(sys, usr, tools);
+    if (!text) throw new Error('未收到有效响应');
+    var data = safeParseJSON(text);
+    if (!data.results || !data.results.length) throw new Error('未找到相关新闻');
+
+    var dk = getTodayStr(), mk = getMonthKey();
+    var searchData = {
+      _date: dk, _month: mk, _ts: Date.now(), _isSearch: true, _keyword: keyword,
+      page_title: dk + ' - 搜索:' + keyword.slice(0,10),
+      regions: {eu_us:[], china:[], sea:[], japan:[]}, editorial: ''
+    };
+    data.results.forEach(function(item) {
+      var rk = item.region || 'eu_us';
+      if (!searchData.regions[rk]) rk = 'eu_us';
+      searchData.regions[rk].push({category: item.category||'ai', title: item.title, summary: item.summary, url: item.url});
+    });
+    mergeIntoArchive(dk, mk, searchData);
+    var merged = loadArchive()[mk][dk];
+    currentNewsData = merged; currentLang = 'zh-CN';
+
+    var html = '<div class="detail-back" onclick="showArchive()">← 返回归档</div>';
+    html += '<div class="detail-title">🔍 搜索：' + esc(keyword) + '</div>';
+    html += '<div class="detail-meta">' + fmtDate(dk) + ' · 共 ' + data.results.length + ' 条结果</div>';
+    html += '<div class="region-block"><div class="region-header">搜索结果</div>';
+    data.results.forEach(function(item, idx) {
+      var rk = item.region || 'eu_us';
+      html += buildCard({category: item.category||'ai', title: item.title, summary: item.summary, url: item.url}, idx, dk, rk);
+    });
+    html += '</div>';
+    document.getElementById('mainContent').innerHTML = html;
+    rebuildSidebar();
+    showStatus('✓ 找到 ' + data.results.length + ' 条「' + keyword + '」相关新闻', 'ok');
+    setTimeout(hideStatus, 2500);
+    document.getElementById('translateWrap').style.display = 'flex';
+    document.getElementById('translateLabel').textContent = '翻译';
+  } catch(e) { showStatus('✕ 搜索失败：' + e.message, 'err'); }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 搜索';
+}
+
 // ── Archive view ──
 function showArchive() {
+  currentView = 'archive';
+  setNav('nav-archive');
+  setHeaderMode('news');
   currentNewsId = null; currentNewsData = null;
-  document.getElementById('translateWrap').style.display = 'none';
   hideStatus();
   var archive = loadArchive();
   var months  = Object.keys(archive).sort(function(a,b){ return b.localeCompare(a); });
@@ -547,12 +736,44 @@ function showArchive() {
 function toggleAM(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
 
 // ── Highlights ──
+function buildHighlightCard(b) {
+  var cat = CATS[b.category] || CATS.ai;
+  var hcid = 'hl_' + b.id.replace(/__/g, '_');
+  var hasDetail = !!(b.summary || b.url);
+  var html = '';
+  html += '<div class="highlight-card" id="hlcard-' + b.id + '">';
+  html += '<div class="highlight-card-top">';
+  html += '<span class="highlight-badge ' + cat.cls + '">' + cat.label + '</span>';
+  html += '<span class="highlight-card-title">' + esc(b.title) + '</span>';
+  html += '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">';
+  if (hasDetail) {
+    html += '<span class="card-icon-btn expand-btn" id="ebtn-' + hcid + '" onclick="toggleExpand(\'' + hcid + '\')" title="展开">';
+    html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    html += '</span>';
+  }
+  html += '<span class="highlight-remove" onclick="removeBookmark(\'' + b.id + '\')" title="取消收藏">✕</span>';
+  html += '</div></div>';
+  html += '<div style="font-size:11px;color:var(--text3);margin-top:5px;">' + fmtDate(b.dk) + '</div>';
+  if (hasDetail) {
+    html += '<div class="card-detail" id="edet-' + hcid + '">';
+    if (b.summary) html += '<p class="card-body" style="margin-top:10px;">' + esc(b.summary) + '</p>';
+    if (b.url) {
+      html += '<a class="card-url" href="' + esc(b.url) + '" target="_blank" rel="noopener">';
+      html += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+      html += esc(b.url) + '</a>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function buildHighlightsHTML() {
   var bms   = loadBookmarks();
   var bList = Object.values(bms).sort(function(a,b){ return (b.savedAt||0) - (a.savedAt||0); });
   var html  = '<div class="section-divider"><div class="section-divider-line"></div><div class="section-divider-title">⭐ 重点新闻 HIGHLIGHTS</div><div class="section-divider-line"></div></div>';
   if (!bList.length) {
-    html += '<div class="empty" style="padding:40px 20px;"><div class="empty-icon" style="font-size:32px;">⭐</div><div class="empty-text" style="font-size:13px;">还没有收藏的重点新闻</div><div class="empty-sub">在新闻详情页点击 ☆ 图标收藏</div></div>';
+    html += '<div class="empty" style="padding:40px 20px;"><div class="empty-icon" style="font-size:32px;">⭐</div><div class="empty-text" style="font-size:13px;">还没有收藏的重点新闻</div><div class="empty-sub">点击新闻卡片右上角 ☆ 图标收藏</div></div>';
     return html;
   }
   var byMonth = {};
@@ -564,17 +785,7 @@ function buildHighlightsHTML() {
     html += '<div class="highlights-month-body">';
     html += '<div class="highlights-month-actions"><button class="btn btn-primary btn-sm" onclick="showSummaryPage(\'' + mk + '\')">📋 生成本月重点新闻总结</button></div>';
     html += '<div class="highlights-grid">';
-    items.forEach(function(b) {
-      var cat = CATS[b.category] || CATS.ai;
-      html += '<div class="highlight-card" id="hlcard-' + b.id + '">';
-      html += '<div class="highlight-card-top">';
-      html += '<span class="highlight-badge ' + cat.cls + '">' + cat.label + '</span>';
-      html += '<span class="highlight-card-title">' + esc(b.title) + '</span>';
-      html += '<span class="highlight-remove" onclick="removeBookmark(\'' + b.id + '\')" title="取消收藏">✕</span>';
-      html += '</div>';
-      html += '<div style="font-size:11px;color:var(--text3);margin-top:6px;">' + fmtDate(b.dk) + '</div>';
-      html += '</div>';
-    });
+    items.forEach(function(b) { html += buildHighlightCard(b); });
     html += '</div></div></div>';
   });
   return html;
@@ -594,14 +805,14 @@ function renderHighlightsSection() {
 function toggleHL(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
 
 function scrollToHighlights() {
+  setNav('nav-highlights');
   showArchive();
-  setTimeout(function(){ var el = document.querySelector('.section-divider'); if (el) el.scrollIntoView({behavior:'smooth'}); }, 100);
+  setTimeout(function(){ var el = document.querySelector('.section-divider'); if (el) el.scrollIntoView({behavior:'smooth'}); }, 150);
 }
 
 function removeBookmark(bid) {
   var b = loadBookmarks();
-  delete b[bid];
-  saveBookmarks(b);
+  delete b[bid]; saveBookmarks(b);
   var parts = bid.split('__');
   if (parts.length === 3) {
     var btnEl = document.getElementById('bmbtn-' + parts[0] + '_' + parts[1] + '_' + parts[2]);
@@ -612,6 +823,9 @@ function removeBookmark(bid) {
 
 // ── Detail view ──
 function showDetail(dk, data) {
+  currentView = 'detail';
+  setNav('nav-archive');
+  setHeaderMode('news');
   currentNewsId = dk;
   if (!data) { var a = loadArchive(); data = a[dk.slice(0,6)] && a[dk.slice(0,6)][dk]; }
   if (!data) { showArchive(); return; }
@@ -624,40 +838,15 @@ function showDetail(dk, data) {
 
 function renderDetail(data) {
   var dk   = data._date || getTodayStr();
+  var title = (data.page_title || dk + ' - 每日日报').replace(/周报/g, '日报');
   var html = '<div class="detail-back" onclick="showArchive()">← 返回归档</div>';
-  html += '<div class="detail-title">' + esc(data.page_title || dk + ' - 每日简报') + '</div>';
+  html += '<div class="detail-title">' + esc(title) + '</div>';
   html += '<div class="detail-meta">' + fmtDate(dk) + '</div>';
   REGIONS.forEach(function(r) {
     var items = data.regions && data.regions[r.key];
     if (!items || !items.length) return;
     html += '<div class="region-block"><div class="region-header">' + r.label + '</div>';
-    items.forEach(function(item, idx) {
-      var cat      = CATS[item.category] || CATS.ai;
-      var cid      = r.key + '_' + idx;
-      var bm       = isBookmarked(dk, r.key, idx);
-      var hasDetail = !!(item.summary || item.url);
-      html += '<div class="card' + (bm ? ' bookmarked' : '') + '">';
-      html += '<div class="card-top">';
-      html += '<span class="badge ' + cat.cls + '">' + cat.label + '</span>';
-      html += '<span class="card-title">' + esc(item.title) + '</span>';
-      html += '<div class="card-actions">';
-      html += '<span class="card-icon-btn bookmark-btn' + (bm ? ' active' : '') + '" id="bmbtn-' + dk + '_' + r.key + '_' + idx + '" onclick="handleBookmark(\'' + dk + '\',\'' + r.key + '\',' + idx + ')" title="' + (bm ? '取消收藏' : '收藏') + '">';
-      html += '<svg width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
-      html += '</span>';
-      if (hasDetail) {
-        html += '<span class="card-icon-btn expand-btn" id="ebtn-' + cid + '" onclick="toggleExpand(\'' + cid + '\')" title="展开详情">';
-        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
-        html += '</span>';
-      }
-      html += '</div></div>';
-      if (hasDetail) {
-        html += '<div class="card-detail" id="edet-' + cid + '">';
-        if (item.summary) html += '<p class="card-body">' + esc(item.summary) + '</p>';
-        if (item.url) html += '<a class="card-url" href="' + esc(item.url) + '" target="_blank" rel="noopener"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' + esc(item.url) + '</a>';
-        html += '</div>';
-      }
-      html += '</div>';
-    });
+    items.forEach(function(item, idx) { html += buildCard(item, idx, dk, r.key); });
     html += '</div>';
   });
   if (data.editorial) {
@@ -666,11 +855,12 @@ function renderDetail(data) {
   document.getElementById('mainContent').innerHTML = html;
 }
 
-// ── Summary page ──
+// ── Summary page (highlights) ──
 function showSummaryPage(mk) {
+  setHeaderMode('news');
   document.getElementById('translateWrap').style.display = 'none';
   var bms   = loadBookmarks();
-  var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0) - (b.savedAt||0); });
+  var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0)-(b.savedAt||0); });
   var html  = '<div class="detail-back" onclick="showArchive()">← 返回</div>';
   html += '<div class="detail-title">⭐ ' + fmtMonth(mk) + ' 重点新闻总结</div>';
   html += '<div class="detail-meta" style="margin-bottom:20px;">共 ' + items.length + ' 条收藏新闻</div>';
@@ -678,12 +868,10 @@ function showSummaryPage(mk) {
     html += '<div class="empty"><div class="empty-icon">⭐</div><div class="empty-text">本月暂无收藏新闻</div></div>';
     document.getElementById('mainContent').innerHTML = html; return;
   }
-  html += '<div style="margin-bottom:24px;">';
-  html += '<button class="btn btn-primary" id="btnSummary" onclick="generateSummary(\'' + mk + '\')">';
+  html += '<div style="margin-bottom:24px;"><button class="btn btn-primary" id="btnSummary" onclick="generateSummary(\'' + mk + '\')">';
   html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
   html += '生成重点新闻详细总结</button>';
-  html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">点击后 AI 将对每条新闻生成 3 段以上的详细分析</div>';
-  html += '</div>';
+  html += '<div style="font-size:12px;color:var(--text3);margin-top:8px;">点击后 AI 将对每条新闻生成 3 段以上的详细分析</div></div>';
   items.forEach(function(b, i) {
     var cat = CATS[b.category] || CATS.ai;
     html += '<div class="summary-item" id="sitem-' + b.id + '">';
@@ -696,7 +884,7 @@ function showSummaryPage(mk) {
     html += '</div></div></div>';
     html += '<div id="spara-' + b.id + '" style="font-size:13px;color:var(--text3);font-style:italic;">点击「生成重点新闻详细总结」查看 AI 深度分析</div>';
     html += '<div class="summary-note-label">💭 我的想法</div>';
-    html += '<textarea class="summary-note-input" id="note-' + b.id + '" placeholder="在此记录你对这条新闻的想法、观点或行动计划...">' + esc(getNote(b.id)) + '</textarea>';
+    html += '<textarea class="summary-note-input" id="note-' + b.id + '" placeholder="在此记录你对这条新闻的想法...">' + esc(getNote(b.id)) + '</textarea>';
     html += '<button class="summary-note-save" onclick="saveMyNote(\'' + b.id + '\')">保存想法</button>';
     html += '<div class="summary-note-saved" id="saved-' + b.id + '">✓ 已保存</div>';
     html += '</div>';
@@ -716,25 +904,22 @@ async function generateSummary(mk) {
   var btn = document.getElementById('btnSummary');
   if (!btn) return;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> AI 生成详细总结中，约需 30 秒...';
+  btn.innerHTML = '<span class="spinner"></span> AI 生成详细总结中...';
   showStatus('正在对每条重点新闻进行深度分析...', 'loading');
   var bms   = loadBookmarks();
-  var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0) - (b.savedAt||0); });
-  var sys = 'You are a senior digital marketing analyst. For each news item, write a detailed analysis in Simplified Chinese.\n'
+  var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0)-(b.savedAt||0); });
+  var sys = 'You are a senior digital marketing analyst. For each news item write a detailed analysis in Simplified Chinese.\n'
     + 'For EACH item write AT LEAST 3 paragraphs:\n'
     + 'Para 1: What happened - detailed factual summary\n'
-    + 'Para 2: Why it matters - industry implications for AI/ecommerce/digital marketing\n'
-    + 'Para 3: Action points - specific recommendations for digital marketing practitioners\n'
-    + 'Add more paragraphs if needed.\n\n'
-    + 'Output ONLY valid JSON:\n'
-    + '{"analyses":[{"id":"bookmark_id","paragraphs":["para1","para2","para3"]}]}\n'
-    + 'Output ONLY the JSON.';
+    + 'Para 2: Why it matters - industry implications\n'
+    + 'Para 3: Action points - recommendations for digital marketing practitioners\n'
+    + 'Output ONLY valid JSON: {"analyses":[{"id":"bookmark_id","paragraphs":["para1","para2","para3"]}]}\n'
+    + 'OUTPUT ONLY THE JSON.';
   var newsText = items.map(function(b, i){
-    return (i+1) + '. [ID:' + b.id + '] ' + b.title + (b.summary ? '\nSummary: ' + b.summary : '') + (b.url ? '\nURL: ' + b.url : '');
+    return (i+1) + '. [ID:' + b.id + '] ' + b.title + (b.summary ? '\n' + b.summary : '') + (b.url ? '\n' + b.url : '');
   }).join('\n\n');
-  var usr = 'Analyze these ' + items.length + ' bookmarked news items in depth (at least 3 paragraphs each):\n\n' + newsText;
   try {
-    var raw    = await callClaude(sys, usr, null);
+    var raw = await callClaude(sys, 'Analyze these ' + items.length + ' news items:\n\n' + newsText, null);
     var result = safeParseJSON(raw);
     if (result && result.analyses) {
       result.analyses.forEach(function(a) {
@@ -751,12 +936,281 @@ async function generateSummary(mk) {
   btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 重新生成总结';
 }
 
+// ─────────────────────────────────────────────────────
+// URL SUMMARIZER
+// ─────────────────────────────────────────────────────
+var urlInputCount = 1;
+
+function showSummarizer() {
+  currentView = 'summarizer';
+  setNav('nav-summarizer');
+  setHeaderMode('summarizer');
+  currentReportData = null;
+  hideStatus();
+
+  var html = '<div class="detail-title" style="margin-bottom:6px;">📝 新闻总结</div>';
+  html += '<div class="detail-meta" style="margin-bottom:24px;">输入一个或多个新闻 URL，AI 将整合分析所有内容</div>';
+  html += '<div id="urlInputs">';
+  html += '<div class="url-row" id="urlrow-1">';
+  html += '<input class="url-field" type="url" id="url-1" placeholder="https://...">';
+  html += '</div>';
+  html += '</div>';
+  html += '<button class="url-add-btn" onclick="addUrlRow()" style="margin-top:4px;">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  html += ' 添加更多 URL</button>';
+
+  document.getElementById('mainContent').innerHTML = html;
+  urlInputCount = 1;
+}
+
+function addUrlRow() {
+  urlInputCount++;
+  var container = document.getElementById('urlInputs');
+  var row = document.createElement('div');
+  row.className = 'url-row';
+  row.id = 'urlrow-' + urlInputCount;
+  row.innerHTML = '<input class="url-field" type="url" id="url-' + urlInputCount + '" placeholder="https://...">'
+    + '<span class="url-remove-btn" onclick="removeUrlRow(' + urlInputCount + ')" title="删除">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+    + '</span>';
+  container.appendChild(row);
+}
+
+function removeUrlRow(n) {
+  var row = document.getElementById('urlrow-' + n);
+  if (row) row.remove();
+}
+
+function getUrls() {
+  var urls = [];
+  var inputs = document.querySelectorAll('.url-field');
+  inputs.forEach(function(inp) {
+    var v = inp.value.trim();
+    if (v) urls.push(v);
+  });
+  return urls;
+}
+
+async function analyzeSummarizer() {
+  var urls = getUrls();
+  if (!urls.length) { showStatus('请先输入至少一个 URL', 'err'); return; }
+
+  var btn = document.getElementById('btnSummAnalyze');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner spinner-light"></span> 分析中...';
+  showStatus('正在读取并分析 ' + urls.length + ' 篇文章，约需 30-60 秒...', 'loading');
+
+  var sys = 'You are a professional research analyst. The user provides URLs of news articles. Use web_search to fetch and read each URL\'s content, then synthesize all articles.\n\n'
+    + 'Analysis requirements:\n'
+    + '1. Group similar topics across articles together - do NOT analyze each URL separately\n'
+    + '2. Create a structured outline with major topics (sections) and sub-points\n'
+    + '3. For each sub-point, write 1-3 detailed paragraphs in Simplified Chinese\n'
+    + '4. Track which URLs contributed to each sub-point\n'
+    + '5. Generate a concise title for the overall report\n\n'
+    + 'Output ONLY valid JSON:\n'
+    + '{"report_title":"Chinese title","sections":[{"title":"Section title","subsections":[{"title":"Subsection title","paragraphs":["para1","para2","para3"],"source_urls":["url1","url2"]}]}]}\n'
+    + 'OUTPUT ONLY THE JSON OBJECT.';
+
+  var urlList = urls.map(function(u, i){ return (i+1) + '. ' + u; }).join('\n');
+  var usr = 'Please fetch and analyze these ' + urls.length + ' article(s):\n\n' + urlList + '\n\nSynthesize all content into a unified structured report in Simplified Chinese. Group related topics together.';
+  var tools = [{type:'web_search_20250305', name:'web_search'}];
+
+  try {
+    var text = await callClaude(sys, usr, tools);
+    if (!text) throw new Error('未收到有效响应');
+    var report = safeParseJSON(text);
+    if (!report.sections || !report.sections.length) throw new Error('未能生成有效报告');
+
+    report._urls = urls;
+    report._date = getTodayStr();
+    report._ts   = Date.now();
+    currentReportData = report;
+
+    renderReport(report);
+    setHeaderMode('report');
+    showStatus('✓ 分析完成', 'ok');
+    setTimeout(hideStatus, 2000);
+  } catch(e) { showStatus('✕ 分析失败：' + e.message, 'err'); }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 总结分析';
+}
+
+function renderReport(report) {
+  var tocHtml = '<div class="url-toc-header"><span>目录</span><span class="toc-toggle-btn" onclick="toggleToc()" title="收起/展开">☰</span></div>';
+  tocHtml += '<div class="url-toc-content" id="tocContent">';
+  (report.sections || []).forEach(function(sec, si) {
+    var sid = 'sec-' + si;
+    tocHtml += '<div class="toc-group">';
+    tocHtml += '<div class="toc-group-title open" id="toc-g-' + si + '" onclick="toggleTocGroup(this,' + si + ')"><span class="arr">▶</span>' + esc(sec.title) + '</div>';
+    tocHtml += '<div class="toc-items open" id="toc-items-' + si + '">';
+    (sec.subsections || []).forEach(function(sub, ssi) {
+      var subid = 'sub-' + si + '-' + ssi;
+      tocHtml += '<div class="toc-item" id="toc-' + subid + '" onclick="scrollToSection(\'' + subid + '\')">' + esc(sub.title) + '</div>';
+    });
+    tocHtml += '</div></div>';
+  });
+  tocHtml += '</div>';
+
+  var contentHtml = '';
+  contentHtml += '<div class="detail-back" onclick="showSummarizer()">← 重新输入 URL</div>';
+  contentHtml += '<div class="detail-title">' + esc(report.report_title || '文章总结') + '</div>';
+  contentHtml += '<div class="detail-meta" style="margin-bottom:24px;">基于 ' + (report._urls ? report._urls.length : 0) + ' 篇文章 · ' + getToday() + '</div>';
+
+  (report.sections || []).forEach(function(sec, si) {
+    contentHtml += '<div class="summ-section" id="sec-' + si + '">';
+    contentHtml += '<div class="summ-section-title">' + esc(sec.title) + '</div>';
+    (sec.subsections || []).forEach(function(sub, ssi) {
+      var subid = 'sub-' + si + '-' + ssi;
+      contentHtml += '<div class="summ-subsection" id="' + subid + '">';
+      contentHtml += '<div class="summ-subsection-title">' + esc(sub.title) + '</div>';
+      (sub.paragraphs || []).forEach(function(p) {
+        contentHtml += '<p class="summ-para">' + esc(p) + '</p>';
+      });
+      if (sub.source_urls && sub.source_urls.length) {
+        contentHtml += '<div class="summ-sources"><div class="summ-source-label">📎 来源</div>';
+        sub.source_urls.forEach(function(u) {
+          contentHtml += '<a class="summ-source-url" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a>';
+        });
+        contentHtml += '</div>';
+      }
+      contentHtml += '</div>';
+    });
+    contentHtml += '</div>';
+  });
+
+  var wrapper = '<div class="url-summarizer">'
+    + '<div class="url-toc" id="urlToc">' + tocHtml + '</div>'
+    + '<div class="url-content" id="urlContent">' + contentHtml + '</div>'
+    + '</div>';
+
+  document.getElementById('mainContent').innerHTML = wrapper;
+}
+
+function toggleToc() {
+  var toc = document.getElementById('urlToc');
+  if (toc) toc.classList.toggle('collapsed');
+}
+
+function toggleTocGroup(el, idx) {
+  el.classList.toggle('open');
+  var items = document.getElementById('toc-items-' + idx);
+  if (items) items.classList.toggle('open');
+}
+
+function scrollToSection(subid) {
+  var el = document.getElementById(subid);
+  var content = document.getElementById('urlContent');
+  if (el && content) {
+    content.scrollTo({ top: el.offsetTop - 20, behavior: 'smooth' });
+    document.querySelectorAll('.toc-item').forEach(function(t){ t.classList.remove('active'); });
+    var tocItem = document.getElementById('toc-' + subid);
+    if (tocItem) tocItem.classList.add('active');
+  }
+}
+
+// ── Save report ──
+function saveCurrentReport() {
+  if (!currentReportData) return;
+  var a = loadSummArchive();
+  var mk = getMonthKey();
+  if (!a[mk]) a[mk] = [];
+  var id = 'report_' + Date.now();
+  a[mk].push({
+    id: id,
+    title: currentReportData.report_title || '无标题总结',
+    date: getTodayStr(),
+    ts: Date.now(),
+    data: currentReportData
+  });
+  saveSummArchive(a);
+  showStatus('✓ 总结已收藏', 'ok');
+  setTimeout(hideStatus, 2000);
+}
+
+// ── Download Word ──
+function downloadWord() {
+  if (!currentReportData) return;
+  var text = currentReportData.report_title + '\n\n';
+  text += '生成日期：' + getToday() + '\n';
+  text += '来源URL：\n' + (currentReportData._urls || []).join('\n') + '\n\n';
+  (currentReportData.sections || []).forEach(function(sec) {
+    text += '=== ' + sec.title + ' ===\n\n';
+    (sec.subsections || []).forEach(function(sub) {
+      text += '【' + sub.title + '】\n';
+      (sub.paragraphs || []).forEach(function(p) { text += p + '\n\n'; });
+      if (sub.source_urls && sub.source_urls.length) {
+        text += '来源：' + sub.source_urls.join('、') + '\n';
+      }
+      text += '\n';
+    });
+  });
+
+  // Create downloadable file
+  var blob = new Blob(['\ufeff' + text], {type: 'text/plain;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = (currentReportData.report_title || 'report') + '.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+  showStatus('✓ 已下载（.txt 格式，可用 Word 打开）', 'ok');
+  setTimeout(hideStatus, 2000);
+}
+
+// ── Summ Archive ──
+function showSummArchive() {
+  currentView = 'summ-archive';
+  setNav('nav-summ-archive');
+  setHeaderMode('news');
+  document.getElementById('translateWrap').style.display = 'none';
+  hideStatus();
+
+  var a = loadSummArchive();
+  var months = Object.keys(a).sort(function(x,y){ return y.localeCompare(x); });
+
+  var html = '<div class="detail-title" style="margin-bottom:6px;">🗂️ 总结收藏</div>';
+  html += '<div class="detail-meta" style="margin-bottom:24px;">收藏的 AI 文章总结报告</div>';
+
+  if (!months.length) {
+    html += '<div class="empty"><div class="empty-icon">🗂️</div><div class="empty-text">还没有收藏的总结</div><div class="empty-sub">在新闻总结页点击「收藏总结」保存</div></div>';
+  } else {
+    months.forEach(function(mk) {
+      var reports = a[mk].sort(function(x,y){ return y.ts - x.ts; });
+      html += '<div class="archive-month" style="margin-bottom:8px;">';
+      html += '<div class="archive-month-header" onclick="toggleAM(this)"><span class="arr">▶</span><span class="archive-month-title">📂 ' + fmtMonth(mk) + ' 总结</span><span class="archive-month-count">' + reports.length + ' 篇</span></div>';
+      html += '<div class="archive-month-body">';
+      reports.forEach(function(r) {
+        html += '<div class="archive-day-item" onclick="showSavedReport(\'' + mk + '\',\'' + r.id + '\')">';
+        html += '<span class="archive-day-date">' + fmtDate(r.date) + '</span>';
+        html += '<span class="archive-day-title">' + esc(r.title) + '</span>';
+        html += '<span style="color:var(--text3);font-size:11px;">›</span>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    });
+  }
+
+  document.getElementById('mainContent').innerHTML = html;
+  var first = document.querySelector('.archive-month-header');
+  if (first) toggleAM(first);
+}
+
+function showSavedReport(mk, id) {
+  var a = loadSummArchive();
+  var reports = a[mk] || [];
+  var found = reports.find(function(r){ return r.id === id; });
+  if (!found) return;
+  currentReportData = found.data;
+  renderReport(found.data);
+  setHeaderMode('report');
+}
+
 // ── Sidebar ──
 function rebuildSidebar() {
   var archive = loadArchive();
   var months  = Object.keys(archive).sort(function(a,b){ return b.localeCompare(a); });
-  var mk0     = getMonthKey();
-  var html    = '';
+  var mk0 = getMonthKey(), html = '';
   months.forEach(function(mk) {
     var days = Object.keys(archive[mk]).sort(function(a,b){ return b.localeCompare(a); });
     var open = mk === mk0;
@@ -781,6 +1235,7 @@ function updateSidebarActive(dk) {
 function init() {
   rebuildSidebar();
   if (!getApiKey()) {
+    setHeaderMode('news');
     document.getElementById('mainContent').innerHTML = '<div class="empty"><div class="empty-icon">⚙️</div><div class="empty-text">请先配置 API Key</div><div class="empty-sub" style="margin-top:14px;"><button class="btn btn-primary btn-sm" onclick="openSettings()">打开设置</button></div></div>';
   } else {
     showArchive();
