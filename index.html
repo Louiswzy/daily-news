@@ -1297,6 +1297,52 @@ function updateSidebarActive(dk) {
   });
 }
 
+// ── Add URL to summarizer ──
+function addUrlToSummarizer(url) {
+  // Switch to summarizer view
+  currentView = 'summarizer';
+  setNav('nav-summarizer');
+  setHeaderMode('summarizer');
+
+  // Check if summarizer page is already loaded
+  var urlInputs = document.getElementById('urlInputs');
+  if (!urlInputs) {
+    // Need to render the summarizer page first
+    showSummarizer();
+    urlInputs = document.getElementById('urlInputs');
+  }
+
+  // Check if this URL is already in an input
+  var existing = document.querySelectorAll('.url-field');
+  for (var i = 0; i < existing.length; i++) {
+    if (existing[i].value.trim() === url) {
+      showStatus('该 URL 已在总结列表中', 'ok');
+      setTimeout(hideStatus, 1500);
+      return;
+    }
+  }
+
+  // Find first empty input and fill it, or add new row
+  var inputs = document.querySelectorAll('.url-field');
+  var filled = false;
+  for (var j = 0; j < inputs.length; j++) {
+    if (!inputs[j].value.trim()) {
+      inputs[j].value = url;
+      filled = true;
+      inputs[j].focus();
+      break;
+    }
+  }
+  if (!filled) {
+    addUrlRow();
+    var newInputs = document.querySelectorAll('.url-field');
+    newInputs[newInputs.length - 1].value = url;
+  }
+
+  showStatus('✓ URL 已添加到新闻总结', 'ok');
+  setTimeout(hideStatus, 1500);
+}
+
 // ── Init ──
 function init() {
   rebuildSidebar();
