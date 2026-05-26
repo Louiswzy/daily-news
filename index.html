@@ -228,13 +228,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div class="sidebar-logo-mark">📡</div>
       <div class="sidebar-logo-name">Daily News</div>
     </div>
-    <div class="sidebar-section">导航</div>
-    <div class="sidebar-nav-item" id="nav-archive" onclick="showArchive()">📂 归档</div>
-    <div class="sidebar-nav-item" id="nav-highlights" onclick="scrollToHighlights()">⭐ 重点新闻</div>
+    <div class="sidebar-section">信息提供</div>
+    <div class="sidebar-nav-item" id="nav-archive" onclick="showArchive()">📅 每日新闻</div>
+    <div id="sidebarArchive" style="margin-top:4px;"></div>
+    <div class="sidebar-nav-item" id="nav-highlights" onclick="showHighlightsPage()" style="margin-top:6px;">⭐ 重点新闻</div>
+    <div class="sidebar-section">信息整理</div>
     <div class="sidebar-nav-item" id="nav-summarizer" onclick="showSummarizer()">📝 新闻总结</div>
     <div class="sidebar-nav-item" id="nav-summ-archive" onclick="showSummArchive()">🗂️ 总结收藏</div>
-    <div class="sidebar-section">归档</div>
-    <div id="sidebarArchive"></div>
   </div>
   <div class="main">
     <div class="page-header">
@@ -243,11 +243,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <div class="page-sub">AI · E-commerce · Digital Marketing</div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ 设置</button>
-        <div class="translate-wrap" id="translateWrap" style="display:none;">
+        <div class="translate-wrap" id="translateWrap">
           <div class="translate-btn" id="translateBtn" onclick="toggleTranslateMenu()">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
-            <span id="translateLabel">翻译</span>
+            <span id="translateLabel">语言</span>
             <span style="font-size:9px;color:var(--text3);">▾</span>
           </div>
           <div class="translate-dropdown" id="translateDropdown">
@@ -256,6 +255,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
             <div class="translate-option" onclick="doTranslate('ja','日本語')">🇯🇵 日本語</div>
           </div>
         </div>
+        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ 设置</button>
         <div class="search-wrap" id="searchWrap">
           <input class="search-input" type="text" id="searchInput" placeholder="搜索关键词...">
           <button class="btn btn-ghost btn-sm" id="btnSearch" onclick="searchNews()">
@@ -447,18 +447,17 @@ function setNav(id) {
 // ── UI toggles ──
 function setHeaderMode(mode) {
   // mode: 'news' | 'summarizer' | 'report'
-  var searchWrap   = document.getElementById('searchWrap');
-  var btnGen       = document.getElementById('btnGen');
-  var btnAnalyze   = document.getElementById('btnSummAnalyze');
-  var btnDownload  = document.getElementById('btnDownload');
-  var btnSave      = document.getElementById('btnSaveReport');
-  var translateWrap = document.getElementById('translateWrap');
-  searchWrap.style.display   = mode === 'news' ? 'flex' : 'none';
-  btnGen.style.display       = mode === 'news' ? '' : 'none';
-  btnAnalyze.style.display   = mode === 'summarizer' ? '' : 'none';
-  btnDownload.style.display  = mode === 'report' ? '' : 'none';
-  btnSave.style.display      = mode === 'report' ? '' : 'none';
-  if (mode !== 'news') { translateWrap.style.display = 'none'; }
+  var searchWrap  = document.getElementById('searchWrap');
+  var btnGen      = document.getElementById('btnGen');
+  var btnAnalyze  = document.getElementById('btnSummAnalyze');
+  var btnDownload = document.getElementById('btnDownload');
+  var btnSave     = document.getElementById('btnSaveReport');
+  searchWrap.style.display  = mode === 'news' ? 'flex' : 'none';
+  btnGen.style.display      = mode === 'news' ? '' : 'none';
+  btnAnalyze.style.display  = mode === 'summarizer' ? '' : 'none';
+  btnDownload.style.display = mode === 'report' ? '' : 'none';
+  btnSave.style.display     = mode === 'report' ? '' : 'none';
+  // translate is always visible
 }
 
 // ── Translate ──
@@ -472,21 +471,41 @@ document.addEventListener('keydown', function(e) {
 
 async function doTranslate(lang, label) {
   document.getElementById('translateDropdown').classList.remove('open');
-  if (!currentNewsData || lang === currentLang) return;
-  document.getElementById('translateLabel').textContent = '翻译中...';
-  showStatus('翻译中...', 'loading');
-  var names = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'};
-  var sys = 'Translate all title, summary, editorial, page_title fields to ' + names[lang] + '. Keep JSON structure identical. Output ONLY the JSON object.';
-  try {
-    var raw = await callClaude(sys, JSON.stringify(currentNewsData), null);
-    var t = safeParseJSON(raw);
-    t._date = currentNewsData._date; t._month = currentNewsData._month; t._ts = currentNewsData._ts;
-    currentNewsData = t; currentLang = lang;
-    renderDetail(t);
-    showStatus('✓ 已翻译为 ' + label, 'ok');
-    setTimeout(hideStatus, 1500);
-  } catch(e) { showStatus('✕ 翻译失败：' + e.message, 'err'); }
+  if (lang === currentLang) return;
+  currentLang = lang;
   document.getElementById('translateLabel').textContent = label;
+
+  // If on news/search page and have data, translate
+  if (currentNewsData && (currentView === 'detail' || currentView === 'search')) {
+    showStatus('翻译中...', 'loading');
+    var names = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'};
+    var sys = 'Translate all title, summary, editorial, page_title fields to ' + names[lang] + '. Keep JSON structure identical. Output ONLY the JSON object.';
+    try {
+      var raw = await callClaude(sys, JSON.stringify(currentNewsData), null);
+      var t = safeParseJSON(raw);
+      t._date = currentNewsData._date; t._month = currentNewsData._month; t._ts = currentNewsData._ts;
+      currentNewsData = t;
+      renderDetail(t);
+      showStatus('✓ 已翻译为 ' + label, 'ok');
+      setTimeout(hideStatus, 1500);
+    } catch(e) { showStatus('✕ 翻译失败：' + e.message, 'err'); }
+    return;
+  }
+  // If on report page, translate report
+  if (currentReportData && currentView === 'report') {
+    showStatus('翻译报告中...', 'loading');
+    var names2 = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'};
+    var sys2 = 'Translate all text fields (report_title, section titles, subsection titles, paragraphs) to ' + names2[lang] + '. Keep JSON structure identical. Output ONLY the JSON.';
+    try {
+      var raw2 = await callClaude(sys2, JSON.stringify(currentReportData), null);
+      var t2 = safeParseJSON(raw2);
+      t2._urls = currentReportData._urls; t2._date = currentReportData._date; t2._ts = currentReportData._ts;
+      currentReportData = t2;
+      renderReport(t2);
+      showStatus('✓ 已翻译为 ' + label, 'ok');
+      setTimeout(hideStatus, 1500);
+    } catch(e) { showStatus('✕ 翻译失败：' + e.message, 'err'); }
+  }
 }
 
 // ── Claude API ──
@@ -692,7 +711,8 @@ async function searchNews() {
     });
     mergeIntoArchive(dk, mk, searchData);
     var merged = loadArchive()[mk][dk];
-    currentNewsData = merged; currentLang = 'zh-CN';
+    currentNewsData = merged; currentLang = currentLang || 'zh-CN';
+    currentView = 'search';
 
     var html = '<div class="detail-back" onclick="showArchive()">← 返回归档</div>';
     html += '<div class="detail-title">🔍 搜索：' + esc(keyword) + '</div>';
@@ -745,7 +765,6 @@ function showArchive() {
       html += '</div></div>';
     });
   }
-  html += buildHighlightsHTML();
   document.getElementById('mainContent').innerHTML = html;
   var first = document.querySelector('.archive-month-header');
   if (first) toggleAM(first);
@@ -810,6 +829,10 @@ function buildHighlightsHTML() {
 }
 
 function renderHighlightsSection() {
+  if (currentView === 'highlights') {
+    document.getElementById('mainContent').innerHTML = buildHighlightsHTML();
+    return;
+  }
   var el = document.querySelector('.section-divider');
   if (!el) return;
   var toRemove = [];
@@ -822,10 +845,27 @@ function renderHighlightsSection() {
 
 function toggleHL(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('open'); }
 
-function scrollToHighlights() {
+function showHighlightsPage() {
+  currentView = 'highlights';
   setNav('nav-highlights');
+  setHeaderMode('news');
+  document.getElementById('searchWrap').style.display = 'none';
+  document.getElementById('btnGen').style.display = 'none';
+  hideStatus();
+  var html = buildHighlightsHTML();
+  // Remove the divider title from standalone page
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function scrollToHighlights() { showHighlightsPage(); }
+
+function focusSearch() {
+  setNav('nav-search');
   showArchive();
-  setTimeout(function(){ var el = document.querySelector('.section-divider'); if (el) el.scrollIntoView({behavior:'smooth'}); }, 150);
+  setTimeout(function(){
+    var inp = document.getElementById('searchInput');
+    if (inp) inp.focus();
+  }, 100);
 }
 
 function removeBookmark(bid) {
@@ -843,6 +883,8 @@ function removeBookmark(bid) {
 function showDetail(dk, data) {
   currentView = 'detail';
   setNav('nav-archive');
+  document.getElementById('searchWrap').style.display = 'flex';
+  document.getElementById('btnGen').style.display = '';
   setHeaderMode('news');
   currentNewsId = dk;
   if (!data) { var a = loadArchive(); data = a[dk.slice(0,6)] && a[dk.slice(0,6)][dk]; }
@@ -1048,7 +1090,7 @@ async function analyzeSummarizer() {
     report._date = getTodayStr();
     report._ts   = Date.now();
     currentReportData = report;
-
+    currentView = 'report';
     renderReport(report);
     setHeaderMode('report');
     showStatus('✓ 分析完成', 'ok');
@@ -1225,6 +1267,7 @@ function showSavedReport(mk, id) {
   var found = reports.find(function(r){ return r.id === id; });
   if (!found) return;
   currentReportData = found.data;
+  currentView = 'report';
   renderReport(found.data);
   setHeaderMode('report');
 }
