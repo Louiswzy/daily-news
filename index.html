@@ -586,7 +586,10 @@ function buildCard(item, idx, dk, rk) {
   html += '<span class="card-title">' + esc(item.title) + '</span>';
   html += '<div class="card-actions">';
   if (item.url) {
-    html += '<span class="card-icon-btn" style="color:var(--text3);" title="添加到新闻总结" onclick="addUrlToSummarizer(decodeURIComponent(\'' + encodeURIComponent(item.url) + '\'))">';
+    var isAdded = pendingUrls.indexOf(item.url) >= 0;
+    var analyzeColor = isAdded ? 'var(--accent)' : 'var(--text3)';
+    var analyzeBtnId = 'abtn-' + cid;
+    html += '<span class="card-icon-btn" id="' + analyzeBtnId + '" style="color:' + analyzeColor + ';" title="添加到新闻总结" onclick="toggleAnalyzeUrl(this, decodeURIComponent(\'' + encodeURIComponent(item.url) + '\'))">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
     html += '</span>';
   }
@@ -1313,33 +1316,15 @@ function updateSidebarActive(dk) {
 var pendingUrls = [];
 
 function addUrlToSummarizer(url) {
-  if (!url) return;
-
-  // Add to pending list if not already there
-  if (pendingUrls.indexOf(url) < 0) {
-    pendingUrls.push(url);
-  }
-
+  if (!url || pendingUrls.indexOf(url) >= 0) return;
+  pendingUrls.push(url);
   // If summarizer page is open, add directly
   var urlInputs = document.getElementById('urlInputs');
   if (urlInputs) {
-    // Check if already in an input
-    var existing = document.querySelectorAll('.url-field');
-    for (var i = 0; i < existing.length; i++) {
-      if (existing[i].value.trim() === url) {
-        showToast('该 URL 已在总结列表中');
-        return;
-      }
-    }
-    // Fill empty or add new row
     var inputs = document.querySelectorAll('.url-field');
     var filled = false;
     for (var j = 0; j < inputs.length; j++) {
-      if (!inputs[j].value.trim()) {
-        inputs[j].value = url;
-        filled = true;
-        break;
-      }
+      if (!inputs[j].value.trim()) { inputs[j].value = url; filled = true; break; }
     }
     if (!filled) {
       addUrlRow();
@@ -1347,8 +1332,38 @@ function addUrlToSummarizer(url) {
       newInputs[newInputs.length - 1].value = url;
     }
   }
+}
 
-  showToast('✓ 已加入新闻总结（' + pendingUrls.length + ' 个URL）');
+function removeUrlFromSummarizer(url) {
+  var idx = pendingUrls.indexOf(url);
+  if (idx >= 0) pendingUrls.splice(idx, 1);
+  // If summarizer page is open, remove from inputs
+  var inputs = document.querySelectorAll('.url-field');
+  inputs.forEach(function(inp) {
+    if (inp.value.trim() === url) {
+      // Remove the whole row if it has a remove button, else clear it
+      var row = inp.closest('.url-row');
+      var removeBtn = row && row.querySelector('.url-remove-btn');
+      if (removeBtn) { row.remove(); }
+      else { inp.value = ''; }
+    }
+  });
+}
+
+function toggleAnalyzeUrl(btnEl, url) {
+  if (!url) return;
+  var isAdded = pendingUrls.indexOf(url) >= 0;
+  if (isAdded) {
+    // Remove
+    removeUrlFromSummarizer(url);
+    btnEl.style.color = 'var(--text3)';
+    showToast('已取消（剩余 ' + pendingUrls.length + ' 个URL）');
+  } else {
+    // Add
+    addUrlToSummarizer(url);
+    btnEl.style.color = 'var(--accent)';
+    showToast('✓ 已加入新闻总结（共 ' + pendingUrls.length + ' 个URL）');
+  }
 }
 
 function showToast(msg) {
