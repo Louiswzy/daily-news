@@ -509,10 +509,11 @@ async function doTranslate(lang, label) {
 }
 
 // ── Claude API ──
-async function callClaude(system, user, tools) {
+async function callClaude(system, user, tools, model) {
   var key = getApiKey();
   if (!key) { openSettings(); throw new Error('请先在设置中填入 Anthropic API Key'); }
-  var payload = { apiKey: key, model: 'claude-haiku-4-5-20251001', max_tokens: 4096, system: system, messages: [{role:'user', content:user}] };
+  var useModel = model || 'claude-haiku-4-5-20251001';
+  var payload = { apiKey: key, model: useModel, max_tokens: 6000, system: system, messages: [{role:'user', content:user}] };
   if (tools) payload.tools = tools;
   var res = await fetch(getWorker(), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   if (!res.ok) { var e = await res.json().catch(function(){return{};}); throw new Error((e.error && e.error.message) || ('Error ' + res.status)); }
@@ -973,33 +974,48 @@ async function generateSummary(mk) {
   if (!btn) return;
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> AI 生成详细总结中...';
-  showStatus('正在对每条重点新闻进行深度分析...', 'loading');
+  showStatus('正在搜索并深度分析各条新闻，请稍候（约60秒）...', 'loading');
   var bms   = loadBookmarks();
   var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0)-(b.savedAt||0); });
-  var sys = 'You are a senior digital marketing analyst. For each news item write a detailed analysis in Simplified Chinese.\n'
-    + 'For EACH item write AT LEAST 3 paragraphs:\n'
-    + 'Para 1: What happened - detailed factual summary\n'
-    + 'Para 2: Why it matters - industry implications\n'
-    + 'Para 3: Action points - recommendations for digital marketing practitioners\n'
-    + 'Output ONLY valid JSON: {"analyses":[{"id":"bookmark_id","paragraphs":["para1","para2","para3"]}]}\n'
-    + 'OUTPUT ONLY THE JSON.';
-  var newsText = items.map(function(b, i){
-    return (i+1) + '. [ID:' + b.id + '] ' + b.title + (b.summary ? '\n' + b.summary : '') + (b.url ? '\n' + b.url : '');
-  }).join('\n\n');
-  try {
-    var raw = await callClaude(sys, 'Analyze these ' + items.length + ' news items:\n\n' + newsText, null);
-    var result = safeParseJSON(raw);
-    if (result && result.analyses) {
-      result.analyses.forEach(function(a) {
-        var el = document.getElementById('spara-' + a.id);
-        if (el && a.paragraphs && a.paragraphs.length) {
-          el.innerHTML = a.paragraphs.map(function(p){ return '<p class="summary-para">' + esc(p) + '</p>'; }).join('');
+
+  var tools = [{type:'web_search_20250305', name:'web_search'}];
+
+  // Process each item individually to get deep analysis
+  var successCount = 0;
+  for (var i = 0; i < items.length; i++) {
+    var b = items[i];
+    var el = document.getElementById('spara-' + b.id);
+    if (!el) continue;
+    el.innerHTML = '<p class="summary-para" style="color:var(--text3);">⏳ 正在分析第 ' + (i+1) + '/' + items.length + ' 条...</p>';
+
+    var sys = '你是一位资深数字营销分析师，擅长分析行业新闻并写出深度洞察报告。\n'
+      + '用户会给你一条新闻的标题和URL，请你：\n'
+      + '1. 使用 web_search 搜索该URL或该新闻主题，获取真实内容\n'
+      + '2. 基于真实内容，用简体中文写出深度分析，分3段：\n'
+      + '   第1段：发生了什么——详细还原事件本身，包含具体数据、人名、公司名\n'
+      + '   第2段：为什么重要——对行业的深层影响与意义\n'
+      + '   第3段：行动建议——数字营销从业者可以如何应对或借鉴\n'
+      + '每段至少100字，内容丰富具体，避免泛泛而谈。\n'
+      + '直接输出三段正文，不需要标题标签，段落之间空行分隔。';
+
+    var usr = '请分析以下新闻：\n标题：' + b.title + '\nURL：' + (b.url || '（无URL）') + (b.summary ? '\n摘要参考：' + b.summary : '');
+
+    try {
+      var raw = await callClaude(sys, usr, tools, 'claude-sonnet-4-20250514');
+      if (raw && raw.trim()) {
+        var paras = raw.trim().split(/\n\n+/).filter(function(p){ return p.trim().length > 20; });
+        if (paras.length) {
+          el.innerHTML = paras.map(function(p){ return '<p class="summary-para">' + esc(p.trim()) + '</p>'; }).join('');
+          successCount++;
         }
-      });
+      }
+    } catch(e) {
+      el.innerHTML = '<p class="summary-para" style="color:var(--err);">分析失败：' + esc(e.message) + '</p>';
     }
-    showStatus('✓ 深度总结生成完成', 'ok');
-    setTimeout(hideStatus, 2000);
-  } catch(e) { showStatus('✕ 生成失败：' + e.message, 'err'); }
+  }
+
+  showStatus('✓ 深度总结完成（' + successCount + '/' + items.length + ' 条）', 'ok');
+  setTimeout(hideStatus, 3000);
   btn.disabled = false;
   btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> 重新生成总结';
 }
@@ -1073,31 +1089,33 @@ async function analyzeSummarizer() {
   var btn = document.getElementById('btnSummAnalyze');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner spinner-light"></span> 分析中...';
-  showStatus('正在读取并分析 ' + urls.length + ' 篇文章，约需 30-60 秒...', 'loading');
+  showStatus('正在逐篇抓取并阅读文章，约需 60-90 秒...', 'loading');
 
-  var sys = 'You are a professional research analyst. The user provides URLs of news articles.'
-    + ' Based on your knowledge of these URLs and their content, create a comprehensive synthesis report.'
-    + ' If you have knowledge about the content at these URLs, analyze it. Otherwise, analyze the topic suggested by the URLs.'
-    + '\n\nRequirements:'
-    + '\n1. Group similar topics together - NOT one section per URL'
-    + '\n2. Create 3-6 major sections with 2-4 subsections each'
-    + '\n3. Each subsection: 2-3 detailed paragraphs in Simplified Chinese'
-    + '\n4. Track which source URLs relate to each subsection'
-    + '\n5. Generate a concise Chinese title'
-    + '\n\nOutput ONLY this exact JSON structure, nothing else:'
-    + '\n{"report_title":"报告标题","sections":[{"title":"大主题","subsections":[{"title":"小论点","paragraphs":["段落1","段落2","段落3"],"source_urls":["url1"]}]}]}'
-    + '\nSTART WITH { END WITH }. NO explanation. NO markdown.';
+  var tools = [{type:'web_search_20250305', name:'web_search'}];
+
+  var sys = '你是一位资深内容分析师，擅长阅读多篇文章后融合总结，写出结构清晰、内容深度的中文报告。\n\n'
+    + '你的工作流程：\n'
+    + '1. 对用户提供的每个URL，使用 web_search 搜索该URL或其核心主题，获取真实文章内容\n'
+    + '2. 通读所有文章内容，找出各文章的共同话题和独特观点\n'
+    + '3. 按主题逻辑（而非按URL逐篇）重新组织内容，写成一篇融合总结报告\n\n'
+    + '报告格式要求：\n'
+    + '- 划分3-6个大的Topic，每个大Topic下设2-4个小Topic\n'
+    + '- 相似内容合并写，不同内容分开写，不要每篇文章单独总结\n'
+    + '- 每个小Topic的内容需注明来源URL\n'
+    + '- 全部用简体中文写作\n\n'
+    + '输出格式为严格JSON（不得输出其他内容）：\n'
+    + '{"report_title":"报告标题","sections":[{"title":"大Topic标题","subsections":[{"title":"小Topic标题","paragraphs":["详细段落内容，至少100字，包含具体事实数据"],"source_urls":["来源url"]}]}]}\n'
+    + '从 { 开始，以 } 结束，不加任何markdown或解释。';
 
   var urlList = urls.map(function(u, i){ return (i+1) + '. ' + u; }).join('\n');
-  var usr = '请分析以下 ' + urls.length + ' 篇文章的URL，基于你对这些来源和主题的了解，生成一份整合分析报告（简体中文）：\n\n' + urlList;
-  var tools = null;
+  var usr = '请搜索并分析以下 ' + urls.length + ' 篇文章，融合总结为一份深度报告（简体中文）：\n\n' + urlList
+    + '\n\n重要：请先用 web_search 逐一搜索每个URL的内容，充分阅读后再整合写作。每个小Topic的内容要具体详实，包含原文的关键数据、人名、公司名等细节。';
 
   try {
-    var text = await callClaude(sys, usr, tools);
+    var text = await callClaude(sys, usr, tools, 'claude-sonnet-4-20250514');
     if (!text) throw new Error('未收到有效响应');
     var report = safeParseJSON(text);
     if (!report.sections || !report.sections.length) {
-      // Try to build minimal report from any data
       throw new Error('未能生成有效报告，请检查URL是否可访问，或减少URL数量重试');
     }
 
