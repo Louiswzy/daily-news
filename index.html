@@ -1001,7 +1001,7 @@ async function generateSummary(mk) {
     var usr = '请分析以下新闻：\n标题：' + b.title + '\nURL：' + (b.url || '（无URL）') + (b.summary ? '\n摘要参考：' + b.summary : '');
 
     try {
-      var raw = await callClaude(sys, usr, tools, 'claude-sonnet-4-20250514');
+      var raw = await callClaude(sys, usr, tools, 'claude-sonnet-4-5');
       if (raw && raw.trim()) {
         var paras = raw.trim().split(/\n\n+/).filter(function(p){ return p.trim().length > 20; });
         if (paras.length) {
@@ -1112,7 +1112,7 @@ async function analyzeSummarizer() {
     + '\n\n重要：请先用 web_search 逐一搜索每个URL的内容，充分阅读后再整合写作。每个小Topic的内容要具体详实，包含原文的关键数据、人名、公司名等细节。';
 
   try {
-    var text = await callClaude(sys, usr, tools, 'claude-sonnet-4-20250514');
+    var text = await callClaude(sys, usr, tools, 'claude-sonnet-4-5');
     if (!text) throw new Error('未收到有效响应');
     var report = safeParseJSON(text);
     if (!report.sections || !report.sections.length) {
