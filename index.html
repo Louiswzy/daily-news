@@ -978,8 +978,6 @@ async function generateSummary(mk) {
   var bms   = loadBookmarks();
   var items = Object.values(bms).filter(function(b){ return b.mk === mk; }).sort(function(a,b){ return (a.savedAt||0)-(b.savedAt||0); });
 
-  var tools = [{type:'web_search_20250305', name:'web_search'}];
-
   // Process each item individually to get deep analysis
   var successCount = 0;
   for (var i = 0; i < items.length; i++) {
@@ -988,20 +986,32 @@ async function generateSummary(mk) {
     if (!el) continue;
     el.innerHTML = '<p class="summary-para" style="color:var(--text3);">⏳ 正在分析第 ' + (i+1) + '/' + items.length + ' 条...</p>';
 
+    // Try to fetch article content via Jina first
+    var articleContent = '';
+    if (b.url) {
+      try {
+        var jinaRes = await fetch('https://r.jina.ai/' + b.url, { headers: { 'Accept': 'text/plain' } });
+        if (jinaRes.ok) {
+          articleContent = (await jinaRes.text()).slice(0, 6000);
+        }
+      } catch(e) {}
+    }
+
     var sys = '你是一位资深数字营销分析师，擅长分析行业新闻并写出深度洞察报告。\n'
-      + '用户会给你一条新闻的标题和URL，请你：\n'
-      + '1. 使用 web_search 搜索该URL或该新闻主题，获取真实内容\n'
-      + '2. 基于真实内容，用简体中文写出深度分析，分3段：\n'
-      + '   第1段：发生了什么——详细还原事件本身，包含具体数据、人名、公司名\n'
-      + '   第2段：为什么重要——对行业的深层影响与意义\n'
-      + '   第3段：行动建议——数字营销从业者可以如何应对或借鉴\n'
+      + '基于提供的新闻内容，用简体中文写出深度分析，分3段：\n'
+      + '第1段：发生了什么——详细还原事件本身，包含具体数据、人名、公司名\n'
+      + '第2段：为什么重要——对行业的深层影响与意义\n'
+      + '第3段：行动建议——数字营销从业者可以如何应对或借鉴\n'
       + '每段至少100字，内容丰富具体，避免泛泛而谈。\n'
       + '直接输出三段正文，不需要标题标签，段落之间空行分隔。';
 
-    var usr = '请分析以下新闻：\n标题：' + b.title + '\nURL：' + (b.url || '（无URL）') + (b.summary ? '\n摘要参考：' + b.summary : '');
+    var usr = '请分析以下新闻：\n标题：' + b.title
+      + '\nURL：' + (b.url || '（无URL）')
+      + (b.summary ? '\n摘要：' + b.summary : '')
+      + (articleContent ? '\n\n原文内容：\n' + articleContent : '');
 
     try {
-      var raw = await callClaude(sys, usr, tools, 'claude-sonnet-4-5');
+      var raw = await callClaude(sys, usr, null, 'claude-sonnet-4-5');
       if (raw && raw.trim()) {
         var paras = raw.trim().split(/\n\n+/).filter(function(p){ return p.trim().length > 20; });
         if (paras.length) {
@@ -1082,6 +1092,18 @@ function getUrls() {
   return urls;
 }
 
+async function fetchArticleContent(url) {
+  try {
+    var jinaUrl = 'https://r.jina.ai/' + url;
+    var res = await fetch(jinaUrl, { headers: { 'Accept': 'text/plain' } });
+    if (!res.ok) return '[无法抓取: ' + url + ']';
+    var text = await res.text();
+    return text.slice(0, 8000);
+  } catch(e) {
+    return '[抓取失败: ' + url + ']';
+  }
+}
+
 async function analyzeSummarizer() {
   var urls = getUrls();
   if (!urls.length) { showStatus('请先输入至少一个 URL', 'err'); return; }
@@ -1089,30 +1111,39 @@ async function analyzeSummarizer() {
   var btn = document.getElementById('btnSummAnalyze');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner spinner-light"></span> 分析中...';
-  showStatus('正在逐篇抓取并阅读文章，约需 60-90 秒...', 'loading');
 
-  var tools = [{type:'web_search_20250305', name:'web_search'}];
+  // Step 1: Fetch all articles via Jina
+  showStatus('正在抓取文章内容（第 1/' + urls.length + ' 篇）...', 'loading');
+  var articles = [];
+  for (var i = 0; i < urls.length; i++) {
+    showStatus('正在抓取文章内容（第 ' + (i+1) + '/' + urls.length + ' 篇）...', 'loading');
+    var content = await fetchArticleContent(urls[i]);
+    articles.push({ url: urls[i], content: content });
+  }
+
+  // Step 2: Send all content to Claude for synthesis
+  showStatus('文章抓取完成，正在 AI 融合分析...', 'loading');
+
+  var articlesText = articles.map(function(a, i) {
+    return '=== 文章' + (i+1) + ' URL: ' + a.url + ' ===\n' + a.content;
+  }).join('\n\n');
 
   var sys = '你是一位资深内容分析师，擅长阅读多篇文章后融合总结，写出结构清晰、内容深度的中文报告。\n\n'
-    + '你的工作流程：\n'
-    + '1. 对用户提供的每个URL，使用 web_search 搜索该URL或其核心主题，获取真实文章内容\n'
-    + '2. 通读所有文章内容，找出各文章的共同话题和独特观点\n'
-    + '3. 按主题逻辑（而非按URL逐篇）重新组织内容，写成一篇融合总结报告\n\n'
     + '报告格式要求：\n'
     + '- 划分3-6个大的Topic，每个大Topic下设2-4个小Topic\n'
     + '- 相似内容合并写，不同内容分开写，不要每篇文章单独总结\n'
-    + '- 每个小Topic的内容需注明来源URL\n'
+    + '- 每个小Topic的内容需注明来源URL及原文原句\n'
+    + '- 内容要具体详实，包含原文的关键数据、人名、公司名\n'
     + '- 全部用简体中文写作\n\n'
     + '输出格式为严格JSON（不得输出其他内容）：\n'
-    + '{"report_title":"报告标题","sections":[{"title":"大Topic标题","subsections":[{"title":"小Topic标题","paragraphs":["详细段落内容，至少100字，包含具体事实数据"],"source_urls":["来源url"]}]}]}\n'
+    + '{"report_title":"报告标题","sections":[{"title":"大Topic标题","subsections":[{"title":"小Topic标题","paragraphs":["详细段落内容，至少100字"],"source_urls":["来源url"]}]}]}\n'
     + '从 { 开始，以 } 结束，不加任何markdown或解释。';
 
-  var urlList = urls.map(function(u, i){ return (i+1) + '. ' + u; }).join('\n');
-  var usr = '请搜索并分析以下 ' + urls.length + ' 篇文章，融合总结为一份深度报告（简体中文）：\n\n' + urlList
-    + '\n\n重要：请先用 web_search 逐一搜索每个URL的内容，充分阅读后再整合写作。每个小Topic的内容要具体详实，包含原文的关键数据、人名、公司名等细节。';
+  var usr = '以下是从各URL抓取的文章内容，请通读所有内容后，按主题逻辑融合总结为一份深度报告：\n\n'
+    + articlesText;
 
   try {
-    var text = await callClaude(sys, usr, tools, 'claude-sonnet-4-5');
+    var text = await callClaude(sys, usr, null, 'claude-sonnet-4-5');
     if (!text) throw new Error('未收到有效响应');
     var report = safeParseJSON(text);
     if (!report.sections || !report.sections.length) {
