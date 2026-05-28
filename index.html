@@ -178,9 +178,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 /* URL SUMMARIZER */
 .url-summarizer{display:flex;height:calc(100vh - 120px);gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
-.url-toc{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;transition:width 0.2s;}
-.url-toc.collapsed{width:0;border:none;}
+.url-toc{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;transition:width 0.25s;position:relative;}
+.url-toc.collapsed{width:0;border:none;overflow:visible;}
+.url-toc.collapsed .url-toc-header,.url-toc.collapsed .url-toc-content{display:none;}
 .url-toc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;position:sticky;top:0;background:var(--surface);z-index:1;}
+.toc-expand-btn{display:none;position:absolute;top:14px;left:8px;width:28px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;align-items:center;justify-content:center;color:var(--text2);font-size:14px;z-index:10;transition:background 0.1s;}
+.toc-expand-btn:hover{background:var(--surface2);color:var(--text);}
+.url-toc.collapsed .toc-expand-btn{display:flex;}
 .toc-toggle-btn{cursor:pointer;color:var(--text3);padding:3px;border-radius:3px;transition:color 0.1s;}
 .toc-toggle-btn:hover{color:var(--text2);}
 .url-toc-content{padding:12px 8px;}
@@ -1209,7 +1213,7 @@ function renderReport(report) {
   });
 
   var wrapper = '<div class="url-summarizer">'
-    + '<div class="url-toc" id="urlToc">' + tocHtml + '</div>'
+    + '<div class="url-toc" id="urlToc"><div class="toc-expand-btn" onclick="toggleToc()" title="展开目录">☰</div>' + tocHtml + '</div>'
     + '<div class="url-content" id="urlContent">' + contentHtml + '</div>'
     + '</div>';
 
@@ -1218,7 +1222,8 @@ function renderReport(report) {
 
 function toggleToc() {
   var toc = document.getElementById('urlToc');
-  if (toc) toc.classList.toggle('collapsed');
+  if (!toc) return;
+  toc.classList.toggle('collapsed');
 }
 
 function toggleTocGroup(el, idx) {
