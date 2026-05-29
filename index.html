@@ -858,9 +858,8 @@ async function searchNews() {
     var listText = await callClaude(sysList, 'Search keyword: ' + keyword, tools);
     if (!listText) throw new Error('未收到有效响应');
     var listData = safeParseJSON(listText);
-    if (!listData.items || !listData.items.length) throw new Error('未找到相关新闻');
+    if (!listData || !listData.items || !listData.items.length) throw new Error('未找到相关新闻');
 
-    // Step 2: Jina fetch + Claude summarise each article
     var dk = getTodayStr(), mk = getMonthKey();
     var searchData = {
       _date: dk, _month: mk, _ts: Date.now(), _isSearch: true, _keyword: keyword,
@@ -868,12 +867,7 @@ async function searchNews() {
       regions: {eu_us:[], china:[], sea:[], japan:[]}, editorial: ''
     };
 
-    for (var i = 0; i < listData.items.length; i++) {
-      var item = listData.items[i];
-      showStatus('正在读取第 ' + (i+1) + '/' + listData.items.length + ' 篇文章...', 'loading');
-
-    }
-    // Step1 already has Chinese title+summary, use directly
+    // Step1 already includes Chinese title+summary, use directly
     listData.items.forEach(function(item) {
       var rk = item.region || 'eu_us';
       if (!searchData.regions[rk]) rk = 'eu_us';
@@ -884,23 +878,27 @@ async function searchNews() {
         url: item.url
       });
     });
-    mergeIntoArchive(dk, mk, searchData);
-    var merged = loadArchive()[mk][dk];
-    currentNewsData = merged; currentLang = currentLang || 'zh-CN';
+
+    currentNewsData = searchData;
+    currentLang = 'zh-CN';
     currentView = 'search';
 
     var html = '<div class="detail-back" onclick="showArchive()">← 返回归档</div>';
     html += '<div class="detail-title">🔍 搜索：' + esc(keyword) + '</div>';
-    html += '<div class="detail-meta">' + fmtDate(dk) + ' · 共 ' + data.results.length + ' 条结果</div>';
-    html += '<div class="region-block"><div class="region-header">搜索结果</div>';
-    data.results.forEach(function(item, idx) {
-      var rk = item.region || 'eu_us';
-      html += buildCard({category: item.category||'ai', title: item.title, summary: item.summary, url: item.url}, idx, dk, rk);
+    html += '<div class="detail-meta">' + fmtDate(dk) + ' · 共 ' + listData.items.length + ' 条结果</div>';
+    ['eu_us','china','sea','japan'].forEach(function(rk) {
+      var items = searchData.regions[rk];
+      if (!items || !items.length) return;
+      var labels = {eu_us:'欧美地区', china:'中国地区', sea:'东南亚地区', japan:'日本地区'};
+      html += '<div class="region-block"><div class="region-header">' + (labels[rk]||rk) + '</div>';
+      items.forEach(function(item, idx) {
+        html += buildCard(item, idx, dk, rk);
+      });
+      html += '</div>';
     });
-    html += '</div>';
     document.getElementById('mainContent').innerHTML = html;
-      rebuildSidebar();
-    showStatus('✓ 找到 ' + data.results.length + ' 条「' + keyword + '」相关新闻', 'ok');
+    rebuildSidebar();
+    showStatus('✓ 找到 ' + listData.items.length + ' 条「' + keyword + '」相关新闻', 'ok');
     setTimeout(hideStatus, 2500);
     document.getElementById('translateWrap').style.display = 'flex';
     document.getElementById('translateLabel').textContent = '翻译';
