@@ -393,12 +393,19 @@ function mergeIntoArchive(dk, mk, newData) {
 function loadBookmarks() { try { return JSON.parse(localStorage.getItem(SK_BM) || '{}'); } catch(e) { return {}; } }
 function saveBookmarks(b) { localStorage.setItem(SK_BM, JSON.stringify(b)); }
 function bmId(dk, rk, idx) { return dk + '__' + rk + '__' + idx; }
-function isBookmarked(dk, rk, idx) { return !!(loadBookmarks()[bmId(dk,rk,idx)]); }
+function isBookmarked(dk, rk, idx) {
+  // Check by positional key (for current session items)
+  var b = loadBookmarks();
+  var bid = bmId(dk, rk, idx);
+  return Object.values(b).some(function(bm){ return bm.dk === dk && bm.regionKey === rk && (bm.id.startsWith(bid)); });
+}
 function toggleBookmark(dk, rk, idx, item) {
   var b = loadBookmarks();
   var bid = bmId(dk, rk, idx);
   if (b[bid]) { delete b[bid]; saveBookmarks(b); return false; }
-  b[bid] = { id: bid, dk: dk, mk: dk.slice(0,6), regionKey: rk, category: item.category, title: item.title, summary: item.summary, url: item.url, savedAt: Date.now() };
+  // Use URL as part of key to prevent overwrite when same position has different article
+  var uniqueBid = bid + '__' + Date.now();
+  b[uniqueBid] = { id: uniqueBid, dk: dk, mk: dk.slice(0,6), regionKey: rk, category: item.category, title: item.title, summary: item.summary, url: item.url, savedAt: Date.now() };
   saveBookmarks(b);
   return true;
 }
@@ -978,6 +985,9 @@ function buildHighlightCard(b) {
   return html;
 }
 
+var hlPages = {}; // {mk: currentPage}
+var HL_PAGE_SIZE = 10;
+
 function buildHighlightsHTML() {
   var bms   = loadBookmarks();
   var bList = Object.values(bms).sort(function(a,b){ return (b.savedAt||0) - (a.savedAt||0); });
@@ -986,19 +996,64 @@ function buildHighlightsHTML() {
     html += '<div class="empty" style="padding:40px 20px;"><div class="empty-icon" style="font-size:32px;">⭐</div><div class="empty-text" style="font-size:13px;">还没有收藏的重点新闻</div><div class="empty-sub">点击新闻卡片右上角 ☆ 图标收藏</div></div>';
     return html;
   }
+  var currentMk = getMonthKey();
   var byMonth = {};
   bList.forEach(function(b){ if (!byMonth[b.mk]) byMonth[b.mk] = []; byMonth[b.mk].push(b); });
   Object.keys(byMonth).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(mk) {
     var items = byMonth[mk];
-    html += '<div class="highlights-month">';
-    html += '<div class="highlights-month-header" onclick="toggleHL(this)"><span class="arr">▶</span><span class="highlights-month-title">⭐ ' + fmtMonth(mk) + ' 重点新闻</span><span class="highlights-month-count">' + items.length + ' 条</span></div>';
-    html += '<div class="highlights-month-body">';
+    var isCurrentMonth = (mk === currentMk);
+    // Default: current month open, others collapsed
+    var bodyOpen = isCurrentMonth ? ' open' : '';
+    var headerOpen = isCurrentMonth ? ' open' : '';
+    // Pagination
+    if (!hlPages[mk]) hlPages[mk] = 1;
+    var page = hlPages[mk];
+    var totalPages = Math.ceil(items.length / HL_PAGE_SIZE);
+    var pageItems = items.slice((page-1)*HL_PAGE_SIZE, page*HL_PAGE_SIZE);
+
+    html += '<div class="highlights-month" id="hlm-' + mk + '">';
+    html += '<div class="highlights-month-header' + headerOpen + '" onclick="toggleHL(this)"><span class="arr">▶</span>';
+    html += '<span class="highlights-month-title">⭐ ' + fmtMonth(mk) + ' 重点新闻</span>';
+    html += '<span class="highlights-month-count">' + items.length + ' 条</span></div>';
+    html += '<div class="highlights-month-body' + bodyOpen + '">';
     html += '<div class="highlights-month-actions"><button class="btn btn-primary btn-sm" onclick="showSummaryPage(\'' + mk + '\')">📋 生成本月重点新闻总结</button></div>';
-    html += '<div class="highlights-grid">';
-    items.forEach(function(b) { html += buildHighlightCard(b); });
-    html += '</div></div></div>';
+    html += '<div class="highlights-grid" id="hlg-' + mk + '">';
+    pageItems.forEach(function(b) { html += buildHighlightCard(b); });
+    html += '</div>';
+    // Pagination controls
+    if (totalPages > 1) {
+      html += '<div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0;">';
+      html += '<button class="btn btn-sm" style="padding:4px 12px;font-size:12px;" ' + (page<=1?'disabled':'onclick="hlGoPage(\'' + mk + '\',' + (page-1) + ')"') + '>← 上一页</button>';
+      html += '<span style="font-size:12px;color:var(--text2);">' + page + ' / ' + totalPages + '</span>';
+      html += '<button class="btn btn-sm" style="padding:4px 12px;font-size:12px;" ' + (page>=totalPages?'disabled':'onclick="hlGoPage(\'' + mk + '\',' + (page+1) + ')"') + '>下一页 →</button>';
+      html += '</div>';
+    }
+    html += '</div></div>';
   });
   return html;
+}
+
+function hlGoPage(mk, page) {
+  hlPages[mk] = page;
+  // Re-render only that month's grid
+  var bms = loadBookmarks();
+  var items = Object.values(bms)
+    .filter(function(b){ return b.mk === mk; })
+    .sort(function(a,b){ return (b.savedAt||0)-(a.savedAt||0); });
+  var totalPages = Math.ceil(items.length / HL_PAGE_SIZE);
+  var pageItems = items.slice((page-1)*HL_PAGE_SIZE, page*HL_PAGE_SIZE);
+  var grid = document.getElementById('hlg-' + mk);
+  if (!grid) return;
+  grid.innerHTML = pageItems.map(buildHighlightCard).join('');
+  // Update pagination buttons
+  var container = grid.nextElementSibling;
+  if (container) {
+    var btns = container.querySelectorAll('button');
+    if (btns[0]) { btns[0].disabled = page <= 1; btns[0].setAttribute('onclick', 'hlGoPage(\'' + mk + '\',' + (page-1) + ')'); }
+    if (btns[1]) { btns[1].disabled = page >= totalPages; btns[1].setAttribute('onclick', 'hlGoPage(\'' + mk + '\',' + (page+1) + ')'); }
+    var span = container.querySelector('span');
+    if (span) span.textContent = page + ' / ' + totalPages;
+  }
 }
 
 function renderHighlightsSection() {
