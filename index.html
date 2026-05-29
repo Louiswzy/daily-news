@@ -483,43 +483,50 @@ async function doTranslate(lang, label) {
     showStatus('翻译中...', 'loading');
     var langName = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'}[lang] || 'Simplified Chinese';
     try {
-      // Build compact list of texts to translate (small payload)
+      // Collect all items with index for reliable JSON-based translation
       var items = [];
       ['eu_us','china','sea','japan'].forEach(function(rk) {
         (currentNewsData.regions[rk] || []).forEach(function(it, idx) {
-          items.push({rk: rk, idx: idx, title: it.title, summary: it.summary});
+          items.push({n: items.length + 1, rk: rk, idx: idx, title: it.title, summary: it.summary || ''});
         });
       });
-      var inputText = items.map(function(it, i) {
-        return (i+1) + '|' + it.title + '|||' + (it.summary||'');
-      }).join('\n');
 
-      var sys = 'Translate each line to ' + langName + '. Each line format: N|title|||summary. Keep the same format. Output ONLY the translated lines, same count.';
-      var raw = await callClaude(sys, inputText, null);
-      var lines = (raw||'').trim().split('\n').filter(function(l){ return l.trim(); });
-
-      // Apply translations back
-      var translated = JSON.parse(JSON.stringify(currentNewsData));
-      lines.forEach(function(line, i) {
-        if (!items[i]) return;
-        var parts = line.replace(/^\d+\|/, '').split('|||');
-        var rk = items[i].rk, idx = items[i].idx;
-        if (translated.regions[rk] && translated.regions[rk][idx]) {
-          translated.regions[rk][idx].title = (parts[0]||'').trim() || items[i].title;
-          translated.regions[rk][idx].summary = (parts[1]||'').trim() || items[i].summary;
-        }
+      // Send as JSON array (reliable structure, small payload - titles+summaries only)
+      var inputArr = items.map(function(it) {
+        return {n: it.n, title: it.title, summary: it.summary};
       });
-      // Translate page_title and editorial (short, safe to send)
-      if (currentNewsData.page_title || currentNewsData.editorial) {
-        var shortSys = 'Translate to ' + langName + '. Output ONLY: title_line|||editorial_line';
-        var shortUsr = (currentNewsData.page_title||'') + '|||' + (currentNewsData.editorial||'');
-        var shortRaw = await callClaude(shortSys, shortUsr, null);
-        var shortParts = (shortRaw||'').split('|||');
-        if (shortParts[0]) translated.page_title = shortParts[0].trim();
-        if (shortParts[1]) translated.editorial = shortParts[1].trim();
+      var sys = 'Translate the title and summary fields of each item to ' + langName + '. Keep all other fields unchanged. Output ONLY a valid JSON array with same structure. Start with [ end with ].';
+      var raw = await callClaude(sys, JSON.stringify(inputArr), null);
+
+      // Parse result safely
+      var s = (raw||'').replace(/```json/gi,'').replace(/```/g,'').trim();
+      var i1 = s.indexOf('['), i2 = s.lastIndexOf(']');
+      var arr = null;
+      if (i1 >= 0 && i2 > i1) { try { arr = JSON.parse(s.substring(i1, i2+1)); } catch(e) {} }
+
+      if (arr && arr.length) {
+        var translated = JSON.parse(JSON.stringify(currentNewsData));
+        arr.forEach(function(row) {
+          var orig = items.find(function(it) { return it.n === row.n; });
+          if (!orig) return;
+          var rk = orig.rk, idx = orig.idx;
+          if (translated.regions[rk] && translated.regions[rk][idx]) {
+            if (row.title) translated.regions[rk][idx].title = row.title;
+            if (row.summary) translated.regions[rk][idx].summary = row.summary;
+          }
+        });
+        // Translate page_title only (very short, safe)
+        if (currentNewsData.page_title) {
+          var ptSys = 'Translate this news title to ' + langName + '. Output only the translated title, nothing else.';
+          var ptRaw = await callClaude(ptSys, currentNewsData.page_title, null);
+          if (ptRaw && ptRaw.trim()) translated.page_title = ptRaw.trim();
+        }
+        currentNewsData = translated;
+        renderDetail(translated);
+      } else {
+        // Fallback: just re-render without translation changes
+        renderDetail(currentNewsData);
       }
-      currentNewsData = translated;
-      renderDetail(translated);
       showStatus('✓ 已翻译为 ' + label, 'ok');
       setTimeout(hideStatus, 1500);
     } catch(e) { showStatus('✕ 翻译失败：' + e.message, 'err'); }
@@ -530,32 +537,34 @@ async function doTranslate(lang, label) {
     showStatus('翻译报告中...', 'loading');
     var langName2 = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'}[lang] || 'Simplified Chinese';
     try {
-      // Translate section by section to keep payload small
       var translated2 = JSON.parse(JSON.stringify(currentReportData));
+      // Translate one section at a time (small payload per request)
       for (var si = 0; si < (translated2.sections||[]).length; si++) {
         var sec = translated2.sections[si];
-        var secText = 'SECTION:' + sec.title + '\n';
-        (sec.subsections||[]).forEach(function(sub, si2) {
-          secText += 'SUB' + si2 + ':' + sub.title + '\n';
-          (sub.paragraphs||[]).forEach(function(p, pi) {
-            secText += 'P' + si2 + '_' + pi + ':' + p + '\n';
-          });
-        });
-        var secSys = 'Translate to ' + langName2 + '. Keep the SECTION:/SUB/P prefixes exactly. Output same format.';
-        var secRaw = await callClaude(secSys, secText, null);
-        var secLines = (secRaw||'').split('\n');
-        secLines.forEach(function(line) {
-          var m;
-          if ((m = line.match(/^SECTION:(.+)/))) sec.title = m[1].trim();
-          else if ((m = line.match(/^SUB(\d+):(.+)/))) {
-            var idx2 = parseInt(m[1]);
-            if (sec.subsections[idx2]) sec.subsections[idx2].title = m[2].trim();
-          } else if ((m = line.match(/^P(\d+)_(\d+):(.+)/))) {
-            var si3 = parseInt(m[1]), pi2 = parseInt(m[2]);
-            if (sec.subsections[si3] && sec.subsections[si3].paragraphs[pi2] !== undefined)
-              sec.subsections[si3].paragraphs[pi2] = m[3].trim();
-          }
-        });
+        var secObj = {
+          title: sec.title,
+          subsections: (sec.subsections||[]).map(function(sub) {
+            return {title: sub.title, paragraphs: sub.paragraphs||[]};
+          })
+        };
+        var secSys = 'Translate all text fields (title, paragraphs) to ' + langName2 + '. Keep JSON structure identical. Output ONLY valid JSON.';
+        var secRaw = await callClaude(secSys, JSON.stringify(secObj), null);
+        var secS = (secRaw||'').replace(/```json/gi,'').replace(/```/g,'').trim();
+        var si1 = secS.indexOf('{'), si2 = secS.lastIndexOf('}');
+        if (si1 >= 0 && si2 > si1) {
+          try {
+            var secParsed = JSON.parse(secS.substring(si1, si2+1));
+            if (secParsed.title) sec.title = secParsed.title;
+            if (secParsed.subsections) {
+              secParsed.subsections.forEach(function(sub, subi) {
+                if (sec.subsections[subi]) {
+                  if (sub.title) sec.subsections[subi].title = sub.title;
+                  if (sub.paragraphs) sec.subsections[subi].paragraphs = sub.paragraphs;
+                }
+              });
+            }
+          } catch(e) {}
+        }
       }
       translated2._urls = currentReportData._urls;
       translated2._date = currentReportData._date;
@@ -694,37 +703,38 @@ function buildCard(item, idx, dk, rk) {
 // ── Batch summarise: translate titles + generate Chinese summaries in one Claude call ──
 async function batchSummarise(items) {
   if (!items || !items.length) return [];
-  var itemsJson = items.map(function(it, i) {
-    return (i+1) + '. title=' + it.title + ' | url=' + it.url + ' | region=' + (it.region||'eu_us') + ' | category=' + (it.category||'ai');
-  }).join('\n');
 
-  var sys = 'You are a Chinese news editor. Given a list of news items, for each item:'
-    + ' 1) Translate/rewrite the title into natural Simplified Chinese (max 30 chars)'
-    + ' 2) Write a Chinese summary (60-100 chars) describing what happened'
-    + ' Output ONLY valid JSON array, no explanation, no markdown:'
-    + ' [{"idx":1,"zhTitle":"中文标题","zhSummary":"中文摘要"},...]'
-    + ' Start with [ end with ]. Every item must appear in output.';
+  // Send as JSON array for reliable parsing
+  var inputArr = items.map(function(it, i) {
+    return {idx: i+1, title: it.title, url: it.url};
+  });
+
+  var sys = '你是一位专业的中文新闻编辑。'
+    + '对于给定的新闻列表，无论原文是英语、日语还是其他语言，请为每条新闻：'
+    + '1) 将标题翻译/改写成自然流畅的简体中文（最多25字）'
+    + '2) 用简体中文写60-80字的摘要，说明这条新闻发生了什么、有什么意义'
+    + '输出格式：JSON数组，每项必须包含idx、zhTitle、zhSummary三个字段。'
+    + '示例：[{"idx":1,"zhTitle":"OpenAI申请IPO估值8520亿","zhSummary":"OpenAI正式提交IPO申请文件，目标估值达8520亿美元，计划于2026年秋季上市。此举标志着AI行业最大规模的公开募股即将到来。"}]'
+    + '只输出JSON数组，以[开头，以]结尾，不要任何解释或markdown。';
 
   try {
-    var raw = await callClaude(sys, itemsJson, null);
-    var arr = null;
-    // Parse JSON array
+    var raw = await callClaude(sys, JSON.stringify(inputArr), null);
     var s = (raw||'').replace(/```json/gi,'').replace(/```/g,'').trim();
     var i1 = s.indexOf('['), i2 = s.lastIndexOf(']');
+    var arr = null;
     if (i1 >= 0 && i2 > i1) {
       try { arr = JSON.parse(s.substring(i1, i2+1)); } catch(e) {}
     }
-    if (!arr) return items; // fallback: return originals
-    // Merge results back
+    if (!arr || !arr.length) return items;
     return items.map(function(it, i) {
       var found = arr.find(function(a){ return a.idx === (i+1); });
       return Object.assign({}, it, {
-        zhTitle: (found && found.zhTitle) || it.title,
-        zhSummary: (found && found.zhSummary) || ''
+        zhTitle: (found && found.zhTitle) ? found.zhTitle : it.title,
+        zhSummary: (found && found.zhSummary) ? found.zhSummary : ''
       });
     });
   } catch(e) {
-    return items; // fallback on error
+    return items;
   }
 }
 
@@ -807,10 +817,13 @@ async function generateNews() {
     };
     if (newsData.page_title) newsData.page_title = newsData.page_title.replace(/周报/g, '日报');
 
-    mergeIntoArchive(dk0, mk0, newsData);
-    var merged = loadArchive()[mk0][dk0];
-    currentNewsData = merged; currentLang = 'zh-CN';
-    showDetail(dk0, merged);
+    // Overwrite today's entry (dedup already done client-side)
+    var a = loadArchive();
+    if (!a[mk0]) a[mk0] = {};
+    a[mk0][dk0] = newsData;
+    saveArchive(a);
+    currentNewsData = newsData; currentLang = 'zh-CN';
+    showDetail(dk0, newsData);
     rebuildSidebar();
     showStatus('✓ 生成完成，共 ' + items.length + ' 条新闻', 'ok');
     setTimeout(hideStatus, 2500);
