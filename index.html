@@ -529,29 +529,43 @@ async function callClaude(system, user, tools, model, maxTok) {
 }
 
 function safeParseJSON(raw) {
-  var s = raw.replace(/```json/g,'').replace(/```/g,'').trim();
-  // Find outermost valid JSON object
+  if (!raw) return null;
+  // Strip markdown fences
+  var s = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  // Try all JSON objects from largest to smallest
+  var best = null;
   for (var start = 0; start < s.length; start++) {
     if (s[start] !== '{') continue;
     var depth = 0, inStr = false, escape = false;
     for (var end = start; end < s.length; end++) {
-      var c = s[end];
+      var ch = s[end];
       if (escape) { escape = false; continue; }
-      if (c === '\\' && inStr) { escape = true; continue; }
-      if (c === '"') { inStr = !inStr; continue; }
+      if (ch === '\\' && inStr) { escape = true; continue; }
+      if (ch === '"') { inStr = !inStr; continue; }
       if (inStr) continue;
-      if (c === '{') depth++;
-      if (c === '}') { depth--; if (depth === 0) {
-        var candidate = s.substring(start, end+1);
-        try { return JSON.parse(candidate); } catch(e) { break; }
-      }}
+      if (ch === '{') depth++;
+      if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          var candidate = s.substring(start, end + 1);
+          try {
+            var parsed = JSON.parse(candidate);
+            // Prefer the largest valid object
+            if (!best || candidate.length > JSON.stringify(best).length) best = parsed;
+          } catch(e) {}
+          break;
+        }
+      }
     }
   }
-  // Fallback
+  if (best) return best;
+  // Last resort: find outermost { }
   var i = s.indexOf('{'), j = s.lastIndexOf('}');
-  if (i >= 0 && j >= 0) s = s.substring(i, j+1);
-  try { return JSON.parse(s); }
-  catch(e) { return JSON.parse(s.replace(/[\u0000-\u001F\u007F]/g,' ')); }
+  if (i < 0 || j < 0) return null;
+  var sub = s.substring(i, j + 1);
+  try { return JSON.parse(sub); } catch(e) {}
+  try { return JSON.parse(sub.replace(/[\u0000-\u001F\u007F]/g, ' ')); } catch(e) {}
+  return null;
 }
 
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -647,21 +661,21 @@ async function generateNews() {
     // ── STEP 1: Ask Claude to find URLs only (quick web_search, returns in <20s) ──
     showStatus('第1步：正在搜索最新新闻链接...', 'loading');
 
-    var sysList = 'You are a news researcher. Use web_search to find recent news URLs only.'
+    var sysList = 'You are a news researcher. Use web_search to find recent news URLs.'
       + ' Today is ' + getToday() + '.'
       + ' Find 1-3 real news articles per region (EU/US, China, Southeast Asia, Japan)'
       + ' on topics: AI, ecommerce, digital marketing. Past 7 days only.'
-      + ' Output ONLY valid JSON, no explanation:'
-      + ' {"page_title":"YYYYMMDD - Chinese headline max 15 chars",'
-      + '"editorial":"Chinese market comment max 100 chars",'
-      + '"items":[{"title":"original title","url":"REAL URL","category":"ai|ecommerce|digital_marketing","region":"eu_us|china|sea|japan"}]}'
-      + ' START WITH { END WITH }. NO markdown.';
+      + ' CRITICAL: After searching, your ENTIRE response must be a single valid JSON object.'
+      + ' Do NOT write any text before or after the JSON.'
+      + ' Do NOT use markdown code fences.'
+      + ' Start your response with { and end with }.'
+      + ' Format: {"page_title":"YYYYMMDD-Chinese headline","editorial":"Chinese comment under 100 chars","items":[{"title":"title","url":"https://...","category":"ai","region":"eu_us"}]}';
 
     var tools = [{type:'web_search_20250305', name:'web_search'}];
     var listText = await callClaude(sysList, 'Find news URLs now.', tools);
     if (!listText) throw new Error('未收到有效响应');
     var listData = safeParseJSON(listText);
-    if (!listData.items || !listData.items.length) throw new Error('未找到新闻链接');
+    if (!listData || !listData.items || !listData.items.length) throw new Error('AI返回格式有误，请重试');
 
     // Client-side dedup
     var items = listData.items.filter(function(it) {
