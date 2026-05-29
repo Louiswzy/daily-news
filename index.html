@@ -635,6 +635,43 @@ function buildCard(item, idx, dk, rk) {
   return html;
 }
 
+// ── Batch summarise: translate titles + generate Chinese summaries in one Claude call ──
+async function batchSummarise(items) {
+  if (!items || !items.length) return [];
+  var itemsJson = items.map(function(it, i) {
+    return (i+1) + '. title=' + it.title + ' | url=' + it.url + ' | region=' + (it.region||'eu_us') + ' | category=' + (it.category||'ai');
+  }).join('\n');
+
+  var sys = 'You are a Chinese news editor. Given a list of news items, for each item:'
+    + ' 1) Translate/rewrite the title into natural Simplified Chinese (max 30 chars)'
+    + ' 2) Write a Chinese summary (60-100 chars) describing what happened'
+    + ' Output ONLY valid JSON array, no explanation, no markdown:'
+    + ' [{"idx":1,"zhTitle":"中文标题","zhSummary":"中文摘要"},...]'
+    + ' Start with [ end with ]. Every item must appear in output.';
+
+  try {
+    var raw = await callClaude(sys, itemsJson, null);
+    var arr = null;
+    // Parse JSON array
+    var s = (raw||'').replace(/```json/gi,'').replace(/```/g,'').trim();
+    var i1 = s.indexOf('['), i2 = s.lastIndexOf(']');
+    if (i1 >= 0 && i2 > i1) {
+      try { arr = JSON.parse(s.substring(i1, i2+1)); } catch(e) {}
+    }
+    if (!arr) return items; // fallback: return originals
+    // Merge results back
+    return items.map(function(it, i) {
+      var found = arr.find(function(a){ return a.idx === (i+1); });
+      return Object.assign({}, it, {
+        zhTitle: (found && found.zhTitle) || it.title,
+        zhSummary: (found && found.zhSummary) || ''
+      });
+    });
+  } catch(e) {
+    return items; // fallback on error
+  }
+}
+
 // ── Generate news — Step 1: web_search for URLs only (fast, <30s)
 //                   Step 2: Jina fetch + Claude summarise (no web_search, no timeout) ──
 async function generateNews() {
@@ -689,30 +726,21 @@ async function generateNews() {
       return;
     }
 
-    // ── STEP 2: Fetch each article via Jina (browser-direct, no Worker, no timeout) ──
+    // ── STEP 2: Batch translate+summarise via Claude (titles only, small payload) ──
+    showStatus('第2步：正在生成中文标题和摘要...', 'loading');
+    var summarised = await batchSummarise(items);
+
     var regions = {eu_us:[], china:[], sea:[], japan:[]};
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      showStatus('第2步：正在读取第 ' + (i+1) + '/' + items.length + ' 篇文章...', 'loading');
-
-      // Jina Reader: fetch article content directly in browser (no CORS issue)
-      var articleContent = '';
-      try {
-        var jr = await fetch('https://r.jina.ai/' + item.url, {
-          headers: { 'Accept': 'text/plain', 'X-Return-Format': 'text' }
-        });
-        if (jr.ok) articleContent = (await jr.text()).slice(0, 500);
-      } catch(e) {}
-
+    summarised.forEach(function(item) {
       var rk = item.region || 'eu_us';
       if (!regions[rk]) rk = 'eu_us';
       regions[rk].push({
         category: item.category || 'ai',
-        title: item.title,
-        summary: articleContent || '',
+        title: item.zhTitle || item.title,
+        summary: item.zhSummary || '',
         url: item.url
       });
-    }
+    });
 
     // Build final newsData and save
     var newsData = {
@@ -775,24 +803,20 @@ async function searchNews() {
       var item = listData.items[i];
       showStatus('正在读取第 ' + (i+1) + '/' + listData.items.length + ' 篇文章...', 'loading');
 
-      // Jina Reader: fetch directly in browser
-      var articleContent = '';
-      try {
-        var jr = await fetch('https://r.jina.ai/' + item.url, {
-          headers: { 'Accept': 'text/plain', 'X-Return-Format': 'text' }
-        });
-        if (jr.ok) articleContent = (await jr.text()).slice(0, 500);
-      } catch(e) {}
-
+    }
+    // Batch translate+summarise (titles only, small payload)
+    showStatus('正在生成中文标题和摘要...', 'loading');
+    var summarised = await batchSummarise(listData.items);
+    summarised.forEach(function(item) {
       var rk = item.region || 'eu_us';
       if (!searchData.regions[rk]) rk = 'eu_us';
       searchData.regions[rk].push({
         category: item.category || 'ai',
-        title: item.title,
-        summary: articleContent || '',
+        title: item.zhTitle || item.title,
+        summary: item.zhSummary || '',
         url: item.url
       });
-    }
+    });
     mergeIntoArchive(dk, mk, searchData);
     var merged = loadArchive()[mk][dk];
     currentNewsData = merged; currentLang = currentLang || 'zh-CN';
