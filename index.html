@@ -712,13 +712,7 @@ async function generateNews() {
       var sysSumm = 'You are a news editor. Given article content, write a Chinese summary.'
         + ' Output ONLY valid JSON: {"title":"Chinese title max 25 chars","summary":"Chinese summary 150-200 chars"}'
         + ' START WITH { END WITH }. NO markdown.';
-      var usrSumm = 'Article URL: ' + item.url
-        + '
-Original title: ' + item.title
-        + (articleText ? '
-Content:
-' + articleText : '
-(Could not fetch content, summarise from title)');
+      var usrSumm = 'Article URL: ' + item.url + '\nOriginal title: ' + item.title + (articleText ? '\nContent:\n' + articleText : '\n(No content available)');
 
       var summText = await callClaude(sysSumm, usrSumm, null);
       var summData = safeParseJSON(summText) || {};
@@ -803,11 +797,7 @@ async function searchNews() {
       var sysSumm = 'You are a news editor. Write a Chinese summary of the article.'
         + ' Output ONLY valid JSON: {"title":"Chinese title max 25 chars","summary":"Chinese summary 150-200 chars"}'
         + ' START WITH { END WITH }. NO markdown.';
-      var usrSumm = 'URL: ' + item.url + '
-Title: ' + item.title
-        + (articleText ? '
-Content:
-' + articleText : '');
+      var usrSumm = 'URL: ' + item.url + '\nTitle: ' + item.title + (articleText ? '\nContent:\n' + articleText : '');
       var summText = await callClaude(sysSumm, usrSumm, null);
       var summData = safeParseJSON(summText) || {};
 
