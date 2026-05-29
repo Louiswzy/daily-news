@@ -493,16 +493,17 @@ async function doTranslate(lang, label) {
 
       // Send as JSON array (reliable structure, small payload - titles+summaries only)
       var inputArr = items.map(function(it) {
-        return {n: it.n, title: it.title, summary: it.summary};
+        return {n: it.n, title: it.title, summary: it.summary || ''};
       });
-      var sys = 'Translate the title and summary fields of each item to ' + langName + '. Keep all other fields unchanged. Output ONLY a valid JSON array with same structure. Start with [ end with ].';
-      var raw = await callClaude(sys, JSON.stringify(inputArr), null);
+      // IMPORTANT: wrap in object so Worker extractJSON can find it (Worker only extracts {})
+      var sys = 'Translate ALL title and summary fields to ' + langName + '.'
+        + ' Every item must appear. Wrap result in object:'
+        + ' {"items":[{"n":1,"title":"translated title","summary":"translated summary"},...]}';
+      var raw = await callClaude(sys, JSON.stringify({items: inputArr}), null);
 
-      // Parse result safely
-      var s = (raw||'').replace(/```json/gi,'').replace(/```/g,'').trim();
-      var i1 = s.indexOf('['), i2 = s.lastIndexOf(']');
-      var arr = null;
-      if (i1 >= 0 && i2 > i1) { try { arr = JSON.parse(s.substring(i1, i2+1)); } catch(e) {} }
+      // Parse result safely using safeParseJSON (handles object wrapper)
+      var parsed = safeParseJSON(raw);
+      var arr = parsed && parsed.items;
 
       if (arr && arr.length) {
         var translated = JSON.parse(JSON.stringify(currentNewsData));
@@ -511,8 +512,8 @@ async function doTranslate(lang, label) {
           if (!orig) return;
           var rk = orig.rk, idx = orig.idx;
           if (translated.regions[rk] && translated.regions[rk][idx]) {
-            if (row.title) translated.regions[rk][idx].title = row.title;
-            if (row.summary) translated.regions[rk][idx].summary = row.summary;
+            if (row.title && row.title.trim()) translated.regions[rk][idx].title = row.title.trim();
+            if (row.summary && row.summary.trim()) translated.regions[rk][idx].summary = row.summary.trim();
           }
         });
         // Translate page_title only (very short, safe)
@@ -662,7 +663,7 @@ function buildCard(item, idx, dk, rk) {
   var cat = CATS[item.category] || CATS.ai;
   var cid = rk + '_' + idx;
   var bm  = isBookmarked(dk, rk, idx);
-  var hasDetail = !!(item.summary || item.url);
+  var hasDetail = !!(item.url);
   var html = '';
   html += '<div class="card' + (bm ? ' bookmarked' : '') + '">';
   html += '<div class="card-top">';
@@ -686,9 +687,10 @@ function buildCard(item, idx, dk, rk) {
     html += '</span>';
   }
   html += '</div></div>';
+  // Always show summary directly (no expand needed)
+  if (item.summary) html += '<p class="card-body">' + esc(item.summary) + '</p>';
   if (hasDetail) {
     html += '<div class="card-detail" id="edet-' + cid + '">';
-    if (item.summary) html += '<p class="card-body">' + esc(item.summary) + '</p>';
     if (item.url) {
       html += '<a class="card-url" href="' + esc(item.url) + '" target="_blank" rel="noopener">';
       html += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
@@ -704,28 +706,28 @@ function buildCard(item, idx, dk, rk) {
 async function batchSummarise(items) {
   if (!items || !items.length) return [];
 
-  // Send as JSON array for reliable parsing
   var inputArr = items.map(function(it, i) {
     return {idx: i+1, title: it.title, url: it.url};
   });
 
+  // IMPORTANT: Worker's extractJSON only finds {} objects, NOT [] arrays.
+  // So we wrap the result in an object: {"items":[...]}
   var sys = '你是一位专业的中文新闻编辑。'
     + '对于给定的新闻列表，无论原文是英语、日语还是其他语言，请为每条新闻：'
     + '1) 将标题翻译/改写成自然流畅的简体中文（最多25字）'
     + '2) 用简体中文写60-80字的摘要，说明这条新闻发生了什么、有什么意义'
-    + '输出格式：JSON数组，每项必须包含idx、zhTitle、zhSummary三个字段。'
-    + '示例：[{"idx":1,"zhTitle":"OpenAI申请IPO估值8520亿","zhSummary":"OpenAI正式提交IPO申请文件，目标估值达8520亿美元，计划于2026年秋季上市。此举标志着AI行业最大规模的公开募股即将到来。"}]'
-    + '只输出JSON数组，以[开头，以]结尾，不要任何解释或markdown。';
+    + '输出格式：必须是一个JSON对象，格式为 {"items":[{"idx":1,"zhTitle":"中文标题","zhSummary":"中文摘要"},...]}'
+    + '示例：{"items":[{"idx":1,"zhTitle":"OpenAI申请IPO估值8520亿","zhSummary":"OpenAI正式提交IPO申请文件，目标估值达8520亿美元，计划于2026年秋季上市。此举标志着AI行业最大规模的公开募股即将到来。"}]}'
+    + '只输出这个JSON对象，以{开头，以}结尾，不要任何解释或markdown。';
 
   try {
     var raw = await callClaude(sys, JSON.stringify(inputArr), null);
-    var s = (raw||'').replace(/```json/gi,'').replace(/```/g,'').trim();
-    var i1 = s.indexOf('['), i2 = s.lastIndexOf(']');
-    var arr = null;
-    if (i1 >= 0 && i2 > i1) {
-      try { arr = JSON.parse(s.substring(i1, i2+1)); } catch(e) {}
+    var parsed = safeParseJSON(raw);
+    var arr = parsed && parsed.items;
+    if (!arr || !arr.length) {
+      console.warn('[batchSummarise] parse failed, raw:', (raw||'').substring(0,200));
+      return items;
     }
-    if (!arr || !arr.length) return items;
     return items.map(function(it, i) {
       var found = arr.find(function(a){ return a.idx === (i+1); });
       return Object.assign({}, it, {
@@ -734,6 +736,7 @@ async function batchSummarise(items) {
       });
     });
   } catch(e) {
+    console.warn('[batchSummarise] error:', e.message);
     return items;
   }
 }
