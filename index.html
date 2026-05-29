@@ -641,7 +641,8 @@ function buildCard(item, idx, dk, rk) {
   return html;
 }
 
-// ── Generate news ──
+// ── Generate news — Step 1: web_search for URLs only (fast, <30s)
+//                   Step 2: Jina fetch + Claude summarise (no web_search, no timeout) ──
 async function generateNews() {
   var btn = document.getElementById('btnGen');
   btn.disabled = true;
@@ -650,7 +651,7 @@ async function generateNews() {
   var archive = loadArchive();
   var dk0 = getTodayStr(), mk0 = getMonthKey();
 
-  // Collect ALL historical URLs from local storage for client-side dedup
+  // Collect all historical URLs for client-side dedup
   var allUsedUrls = new Set();
   Object.values(archive).forEach(function(month) {
     Object.values(month).forEach(function(day) {
@@ -662,56 +663,95 @@ async function generateNews() {
     });
   });
 
-  showStatus('正在搜索最新新闻并生成简报，约需 30 秒...', 'loading');
-
-  // Clean fixed-size prompt — no history data sent to Cloudflare
-  var sys = 'You are a professional news editor for digital marketing, AI, and ecommerce.\n'
-    + 'Use web_search to find REAL news articles from the past 7 days.\n'
-    + 'Rules:\n'
-    + '1. Only include news with a VERIFIED working URL from a real reputable source\n'
-    + '2. Summary must accurately reflect the actual article (150-200 chars)\n'
-    + '3. Skip regions/categories where no real news found - never invent\n'
-    + '4. 1-3 items per region maximum\n'
-    + '5. After searching output ONLY valid JSON, no explanation\n'
-    + 'JSON: {"page_title":"YYYYMMDD - headline Chinese max 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"Chinese comment max 150 chars"}\n'
-    + 'Each item: {"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Chinese summary 150-200 chars","url":"REAL URL"}\n'
-    + 'OUTPUT ONLY THE JSON OBJECT.';
-
-  var usr = 'Today is ' + getToday() + '. Find real news from past 7 days on AI, ecommerce, digital marketing across EU/US, China, Southeast Asia, Japan. All content in Simplified Chinese.';
-  var tools = [{type:'web_search_20250305', name:'web_search'}];
-
   try {
-    var text = await callClaude(sys, usr, tools);
-    if (!text) throw new Error('未收到有效响应');
-    var newsData = safeParseJSON(text);
+    // ── STEP 1: Ask Claude to find URLs only (quick web_search, returns in <20s) ──
+    showStatus('第1步：正在搜索最新新闻链接...', 'loading');
 
-    // Client-side dedup: remove any URL already seen in local archive
-    var newCount = 0, dupCount = 0;
-    ['eu_us','china','sea','japan'].forEach(function(rk) {
-      if (!newsData.regions[rk]) return;
-      newsData.regions[rk] = newsData.regions[rk].filter(function(it) {
-        if (!it.url || !allUsedUrls.has(it.url)) { newCount++; return true; }
-        dupCount++;
-        return false;
-      });
+    var sysList = 'You are a news researcher. Use web_search to find recent news URLs only.'
+      + ' Today is ' + getToday() + '.'
+      + ' Find 1-3 real news articles per region (EU/US, China, Southeast Asia, Japan)'
+      + ' on topics: AI, ecommerce, digital marketing. Past 7 days only.'
+      + ' Output ONLY valid JSON, no explanation:'
+      + ' {"page_title":"YYYYMMDD - Chinese headline max 15 chars",'
+      + '"editorial":"Chinese market comment max 100 chars",'
+      + '"items":[{"title":"original title","url":"REAL URL","category":"ai|ecommerce|digital_marketing","region":"eu_us|china|sea|japan"}]}'
+      + ' START WITH { END WITH }. NO markdown.';
+
+    var tools = [{type:'web_search_20250305', name:'web_search'}];
+    var listText = await callClaude(sysList, 'Find news URLs now.', tools);
+    if (!listText) throw new Error('未收到有效响应');
+    var listData = safeParseJSON(listText);
+    if (!listData.items || !listData.items.length) throw new Error('未找到新闻链接');
+
+    // Client-side dedup
+    var items = listData.items.filter(function(it) {
+      return it.url && !allUsedUrls.has(it.url);
     });
+    if (!items.length) {
+      showStatus('✓ 今日新闻已是最新，无重复内容', 'ok');
+      setTimeout(hideStatus, 2500);
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 12A10 10 0 0 1 18.8 4.3"/><path d="M2.5 22v-6h6"/><path d="M21.5 12A10 10 0 0 1 5.2 19.7"/></svg> 生成今日新闻';
+      return;
+    }
 
-    newsData._date = dk0; newsData._month = mk0; newsData._ts = Date.now();
+    // ── STEP 2: Fetch each article via Jina + summarise with Claude (no web_search) ──
+    var regions = {eu_us:[], china:[], sea:[], japan:[]};
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      showStatus('第2步：正在读取第 ' + (i+1) + '/' + items.length + ' 篇文章...', 'loading');
+
+      // Fetch article content via Jina
+      var articleText = '';
+      try {
+        var jr = await fetch('https://r.jina.ai/' + item.url, {headers:{'Accept':'text/plain'}});
+        if (jr.ok) articleText = (await jr.text()).slice(0, 5000);
+      } catch(e) {}
+
+      // Summarise with Claude Haiku (no tools, fast)
+      var sysSumm = 'You are a news editor. Given article content, write a Chinese summary.'
+        + ' Output ONLY valid JSON: {"title":"Chinese title max 25 chars","summary":"Chinese summary 150-200 chars"}'
+        + ' START WITH { END WITH }. NO markdown.';
+      var usrSumm = 'Article URL: ' + item.url
+        + '
+Original title: ' + item.title
+        + (articleText ? '
+Content:
+' + articleText : '
+(Could not fetch content, summarise from title)');
+
+      var summText = await callClaude(sysSumm, usrSumm, null);
+      var summData = safeParseJSON(summText) || {};
+
+      var rk = item.region || 'eu_us';
+      if (!regions[rk]) rk = 'eu_us';
+      regions[rk].push({
+        category: item.category || 'ai',
+        title: summData.title || item.title,
+        summary: summData.summary || '',
+        url: item.url
+      });
+    }
+
+    // Build final newsData and save
+    var newsData = {
+      page_title: listData.page_title || (dk0 + ' - 今日新闻'),
+      editorial: listData.editorial || '',
+      regions: regions,
+      _date: dk0, _month: mk0, _ts: Date.now()
+    };
     if (newsData.page_title) newsData.page_title = newsData.page_title.replace(/周报/g, '日报');
 
-    var todayExists = archive[mk0] && archive[mk0][dk0];
     mergeIntoArchive(dk0, mk0, newsData);
     var merged = loadArchive()[mk0][dk0];
     currentNewsData = merged; currentLang = 'zh-CN';
     showDetail(dk0, merged);
     rebuildSidebar();
-
-    var statusMsg = '✓ 生成完成，已保存到归档';
-    if (dupCount > 0) statusMsg += '（过滤重复 ' + dupCount + ' 条）';
-    showStatus(statusMsg, 'ok');
+    showStatus('✓ 生成完成，共 ' + items.length + ' 条新闻', 'ok');
     setTimeout(hideStatus, 2500);
     document.getElementById('translateWrap').style.display = 'flex';
     document.getElementById('translateLabel').textContent = '翻译';
+
   } catch(e) { showStatus('✕ 失败：' + e.message, 'err'); }
 
   btn.disabled = false;
@@ -728,36 +768,58 @@ async function searchNews() {
   document.getElementById('translateWrap').style.display = 'none';
   showStatus('正在搜索「' + keyword + '」相关新闻，约需 30 秒...', 'loading');
 
-  var sys = 'You are a professional news editor. Search for news about a specific topic using web_search.\n'
-    + 'Search in English, Chinese AND Japanese to find international coverage.\n'
-    + 'Rules:\n'
-    + '1. Only include articles with VERIFIED working URLs from real reputable sources\n'
-    + '2. Find 3-8 relevant articles total\n'
-    + '3. Translate ALL output content to Simplified Chinese\n'
-    + '4. After searching output ONLY valid JSON, no explanation\n'
-    + 'JSON: {"results":[{"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Chinese summary 150-200 chars","url":"REAL URL","region":"eu_us|china|sea|japan"}]}\n'
-    + 'OUTPUT ONLY THE JSON OBJECT.';
-
-  var usr = 'Search keyword: ' + keyword + '\nSearch in English, Chinese, and Japanese. Translate all results to Simplified Chinese.';
+  // Step 1: web_search for URLs only (fast)
+  var sysList = 'You are a news researcher. Use web_search to find news URLs about the given keyword.'
+    + ' Search in English, Chinese AND Japanese.'
+    + ' Find 3-8 real articles from reputable sources.'
+    + ' Output ONLY valid JSON: {"items":[{"title":"original title","url":"REAL URL","category":"ai|ecommerce|digital_marketing","region":"eu_us|china|sea|japan"}]}'
+    + ' START WITH { END WITH }. NO markdown.';
   var tools = [{type:'web_search_20250305', name:'web_search'}];
 
   try {
-    var text = await callClaude(sys, usr, tools);
-    if (!text) throw new Error('未收到有效响应');
-    var data = safeParseJSON(text);
-    if (!data.results || !data.results.length) throw new Error('未找到相关新闻');
+    var listText = await callClaude(sysList, 'Search keyword: ' + keyword, tools);
+    if (!listText) throw new Error('未收到有效响应');
+    var listData = safeParseJSON(listText);
+    if (!listData.items || !listData.items.length) throw new Error('未找到相关新闻');
 
+    // Step 2: Jina fetch + Claude summarise each article
     var dk = getTodayStr(), mk = getMonthKey();
     var searchData = {
       _date: dk, _month: mk, _ts: Date.now(), _isSearch: true, _keyword: keyword,
       page_title: dk + ' - 搜索:' + keyword.slice(0,10),
       regions: {eu_us:[], china:[], sea:[], japan:[]}, editorial: ''
     };
-    data.results.forEach(function(item) {
+
+    for (var i = 0; i < listData.items.length; i++) {
+      var item = listData.items[i];
+      showStatus('正在读取第 ' + (i+1) + '/' + listData.items.length + ' 篇文章...', 'loading');
+
+      var articleText = '';
+      try {
+        var jr = await fetch('https://r.jina.ai/' + item.url, {headers:{'Accept':'text/plain'}});
+        if (jr.ok) articleText = (await jr.text()).slice(0, 5000);
+      } catch(e) {}
+
+      var sysSumm = 'You are a news editor. Write a Chinese summary of the article.'
+        + ' Output ONLY valid JSON: {"title":"Chinese title max 25 chars","summary":"Chinese summary 150-200 chars"}'
+        + ' START WITH { END WITH }. NO markdown.';
+      var usrSumm = 'URL: ' + item.url + '
+Title: ' + item.title
+        + (articleText ? '
+Content:
+' + articleText : '');
+      var summText = await callClaude(sysSumm, usrSumm, null);
+      var summData = safeParseJSON(summText) || {};
+
       var rk = item.region || 'eu_us';
       if (!searchData.regions[rk]) rk = 'eu_us';
-      searchData.regions[rk].push({category: item.category||'ai', title: item.title, summary: item.summary, url: item.url});
-    });
+      searchData.regions[rk].push({
+        category: item.category || 'ai',
+        title: summData.title || item.title,
+        summary: summData.summary || '',
+        url: item.url
+      });
+    }
     mergeIntoArchive(dk, mk, searchData);
     var merged = loadArchive()[mk][dk];
     currentNewsData = merged; currentLang = currentLang || 'zh-CN';
