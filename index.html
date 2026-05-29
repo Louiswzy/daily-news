@@ -479,33 +479,89 @@ async function doTranslate(lang, label) {
   currentLang = lang;
   document.getElementById('translateLabel').textContent = label;
 
-  // If on news/search page and have data, translate
   if (currentNewsData && (currentView === 'detail' || currentView === 'search')) {
     showStatus('翻译中...', 'loading');
-    var names = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'};
-    var sys = 'Translate all title, summary, editorial, page_title fields to ' + names[lang] + '. Keep JSON structure identical. Output ONLY the JSON object.';
+    var langName = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'}[lang] || 'Simplified Chinese';
     try {
-      var raw = await callClaude(sys, JSON.stringify(currentNewsData), null);
-      var t = safeParseJSON(raw);
-      t._date = currentNewsData._date; t._month = currentNewsData._month; t._ts = currentNewsData._ts;
-      currentNewsData = t;
-      renderDetail(t);
+      // Build compact list of texts to translate (small payload)
+      var items = [];
+      ['eu_us','china','sea','japan'].forEach(function(rk) {
+        (currentNewsData.regions[rk] || []).forEach(function(it, idx) {
+          items.push({rk: rk, idx: idx, title: it.title, summary: it.summary});
+        });
+      });
+      var inputText = items.map(function(it, i) {
+        return (i+1) + '|' + it.title + '|||' + (it.summary||'');
+      }).join('\n');
+
+      var sys = 'Translate each line to ' + langName + '. Each line format: N|title|||summary. Keep the same format. Output ONLY the translated lines, same count.';
+      var raw = await callClaude(sys, inputText, null);
+      var lines = (raw||'').trim().split('\n').filter(function(l){ return l.trim(); });
+
+      // Apply translations back
+      var translated = JSON.parse(JSON.stringify(currentNewsData));
+      lines.forEach(function(line, i) {
+        if (!items[i]) return;
+        var parts = line.replace(/^\d+\|/, '').split('|||');
+        var rk = items[i].rk, idx = items[i].idx;
+        if (translated.regions[rk] && translated.regions[rk][idx]) {
+          translated.regions[rk][idx].title = (parts[0]||'').trim() || items[i].title;
+          translated.regions[rk][idx].summary = (parts[1]||'').trim() || items[i].summary;
+        }
+      });
+      // Translate page_title and editorial (short, safe to send)
+      if (currentNewsData.page_title || currentNewsData.editorial) {
+        var shortSys = 'Translate to ' + langName + '. Output ONLY: title_line|||editorial_line';
+        var shortUsr = (currentNewsData.page_title||'') + '|||' + (currentNewsData.editorial||'');
+        var shortRaw = await callClaude(shortSys, shortUsr, null);
+        var shortParts = (shortRaw||'').split('|||');
+        if (shortParts[0]) translated.page_title = shortParts[0].trim();
+        if (shortParts[1]) translated.editorial = shortParts[1].trim();
+      }
+      currentNewsData = translated;
+      renderDetail(translated);
       showStatus('✓ 已翻译为 ' + label, 'ok');
       setTimeout(hideStatus, 1500);
     } catch(e) { showStatus('✕ 翻译失败：' + e.message, 'err'); }
     return;
   }
-  // If on report page, translate report
+
   if (currentReportData && currentView === 'report') {
     showStatus('翻译报告中...', 'loading');
-    var names2 = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'};
-    var sys2 = 'Translate all text fields (report_title, section titles, subsection titles, paragraphs) to ' + names2[lang] + '. Keep JSON structure identical. Output ONLY the JSON.';
+    var langName2 = {'zh-CN':'Simplified Chinese', 'en':'English', 'ja':'Japanese'}[lang] || 'Simplified Chinese';
     try {
-      var raw2 = await callClaude(sys2, JSON.stringify(currentReportData), null);
-      var t2 = safeParseJSON(raw2);
-      t2._urls = currentReportData._urls; t2._date = currentReportData._date; t2._ts = currentReportData._ts;
-      currentReportData = t2;
-      renderReport(t2);
+      // Translate section by section to keep payload small
+      var translated2 = JSON.parse(JSON.stringify(currentReportData));
+      for (var si = 0; si < (translated2.sections||[]).length; si++) {
+        var sec = translated2.sections[si];
+        var secText = 'SECTION:' + sec.title + '\n';
+        (sec.subsections||[]).forEach(function(sub, si2) {
+          secText += 'SUB' + si2 + ':' + sub.title + '\n';
+          (sub.paragraphs||[]).forEach(function(p, pi) {
+            secText += 'P' + si2 + '_' + pi + ':' + p + '\n';
+          });
+        });
+        var secSys = 'Translate to ' + langName2 + '. Keep the SECTION:/SUB/P prefixes exactly. Output same format.';
+        var secRaw = await callClaude(secSys, secText, null);
+        var secLines = (secRaw||'').split('\n');
+        secLines.forEach(function(line) {
+          var m;
+          if ((m = line.match(/^SECTION:(.+)/))) sec.title = m[1].trim();
+          else if ((m = line.match(/^SUB(\d+):(.+)/))) {
+            var idx2 = parseInt(m[1]);
+            if (sec.subsections[idx2]) sec.subsections[idx2].title = m[2].trim();
+          } else if ((m = line.match(/^P(\d+)_(\d+):(.+)/))) {
+            var si3 = parseInt(m[1]), pi2 = parseInt(m[2]);
+            if (sec.subsections[si3] && sec.subsections[si3].paragraphs[pi2] !== undefined)
+              sec.subsections[si3].paragraphs[pi2] = m[3].trim();
+          }
+        });
+      }
+      translated2._urls = currentReportData._urls;
+      translated2._date = currentReportData._date;
+      translated2._ts = currentReportData._ts;
+      currentReportData = translated2;
+      renderReport(translated2);
       showStatus('✓ 已翻译为 ' + label, 'ok');
       setTimeout(hideStatus, 1500);
     } catch(e) { showStatus('✕ 翻译失败：' + e.message, 'err'); }
