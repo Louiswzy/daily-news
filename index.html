@@ -513,11 +513,11 @@ async function doTranslate(lang, label) {
 }
 
 // ── Claude API ──
-async function callClaude(system, user, tools, model) {
+async function callClaude(system, user, tools, model, maxTok) {
   var key = getApiKey();
   if (!key) { openSettings(); throw new Error('请先在设置中填入 Anthropic API Key'); }
   var useModel = model || 'claude-haiku-4-5-20251001';
-  var payload = { apiKey: key, model: useModel, max_tokens: 6000, system: system, messages: [{role:'user', content:user}] };
+  var payload = { apiKey: key, model: useModel, max_tokens: maxTok || 4096, system: system, messages: [{role:'user', content:user}] };
   if (tools) payload.tools = tools;
   var res = await fetch(getWorker(), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   if (!res.ok) { var e = await res.json().catch(function(){return{};}); throw new Error((e.error && e.error.message) || ('Error ' + res.status)); }
@@ -627,23 +627,24 @@ async function generateNews() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> 生成中...';
 
-  var existingUrls = [];
   var archive = loadArchive();
   var dk0 = getTodayStr(), mk0 = getMonthKey();
-  var todayData = archive[mk0] && archive[mk0][dk0];
-  if (todayData && todayData.regions) {
-    ['eu_us','china','sea','japan'].forEach(function(rk) {
-      (todayData.regions[rk] || []).forEach(function(it) { if (it.url) existingUrls.push(it.url); });
+
+  // Collect ALL historical URLs from local storage for client-side dedup
+  var allUsedUrls = new Set();
+  Object.values(archive).forEach(function(month) {
+    Object.values(month).forEach(function(day) {
+      if (day.regions) {
+        ['eu_us','china','sea','japan'].forEach(function(rk) {
+          (day.regions[rk] || []).forEach(function(it) { if (it.url) allUsedUrls.add(it.url); });
+        });
+      }
     });
-  }
-  var isAppend = existingUrls.length > 0;
-  showStatus(isAppend ? '正在搜索新的新闻（避开已有来源）...' : '正在搜索最新新闻并生成简报，约需 30 秒...', 'loading');
+  });
 
-  var excludeSys = '';
-  if (existingUrls.length > 0) {
-    excludeSys = '\nALREADY USED URLs - do NOT use these sources:\n' + existingUrls.join('\n') + '\nFind completely different articles.';
-  }
+  showStatus('正在搜索最新新闻并生成简报，约需 30 秒...', 'loading');
 
+  // Clean fixed-size prompt — no history data sent to Cloudflare
   var sys = 'You are a professional news editor for digital marketing, AI, and ecommerce.\n'
     + 'Use web_search to find REAL news articles from the past 7 days.\n'
     + 'Rules:\n'
@@ -654,8 +655,7 @@ async function generateNews() {
     + '5. After searching output ONLY valid JSON, no explanation\n'
     + 'JSON: {"page_title":"YYYYMMDD - headline Chinese max 15 chars","regions":{"eu_us":[],"china":[],"sea":[],"japan":[]},"editorial":"Chinese comment max 150 chars"}\n'
     + 'Each item: {"category":"ai|ecommerce|digital_marketing","title":"Chinese title","summary":"Chinese summary 150-200 chars","url":"REAL URL"}\n'
-    + 'OUTPUT ONLY THE JSON OBJECT.'
-    + excludeSys;
+    + 'OUTPUT ONLY THE JSON OBJECT.';
 
   var usr = 'Today is ' + getToday() + '. Find real news from past 7 days on AI, ecommerce, digital marketing across EU/US, China, Southeast Asia, Japan. All content in Simplified Chinese.';
   var tools = [{type:'web_search_20250305', name:'web_search'}];
@@ -664,15 +664,31 @@ async function generateNews() {
     var text = await callClaude(sys, usr, tools);
     if (!text) throw new Error('未收到有效响应');
     var newsData = safeParseJSON(text);
+
+    // Client-side dedup: remove any URL already seen in local archive
+    var newCount = 0, dupCount = 0;
+    ['eu_us','china','sea','japan'].forEach(function(rk) {
+      if (!newsData.regions[rk]) return;
+      newsData.regions[rk] = newsData.regions[rk].filter(function(it) {
+        if (!it.url || !allUsedUrls.has(it.url)) { newCount++; return true; }
+        dupCount++;
+        return false;
+      });
+    });
+
     newsData._date = dk0; newsData._month = mk0; newsData._ts = Date.now();
-    // Fix: 日报 not 周报
     if (newsData.page_title) newsData.page_title = newsData.page_title.replace(/周报/g, '日报');
+
+    var todayExists = archive[mk0] && archive[mk0][dk0];
     mergeIntoArchive(dk0, mk0, newsData);
     var merged = loadArchive()[mk0][dk0];
     currentNewsData = merged; currentLang = 'zh-CN';
     showDetail(dk0, merged);
     rebuildSidebar();
-    showStatus(isAppend ? '✓ 新内容已追加到今日归档' : '✓ 生成完成，已保存到归档', 'ok');
+
+    var statusMsg = '✓ 生成完成，已保存到归档';
+    if (dupCount > 0) statusMsg += '（过滤重复 ' + dupCount + ' 条）';
+    showStatus(statusMsg, 'ok');
     setTimeout(hideStatus, 2500);
     document.getElementById('translateWrap').style.display = 'flex';
     document.getElementById('translateLabel').textContent = '翻译';
@@ -1147,7 +1163,7 @@ async function analyzeSummarizer() {
     + articlesText;
 
   try {
-    var text = await callClaude(sys, usr, null, 'claude-sonnet-4-5');
+    var text = await callClaude(sys, usr, null, 'claude-sonnet-4-5', 6000);
     if (!text) throw new Error('未收到有效响应');
     var report = safeParseJSON(text);
     if (!report.sections || !report.sections.length) {
