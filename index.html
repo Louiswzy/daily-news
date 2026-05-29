@@ -956,29 +956,35 @@ function toggleAM(el) { el.classList.toggle('open'); el.nextElementSibling.class
 function buildHighlightCard(b) {
   var cat = CATS[b.category] || CATS.ai;
   var hcid = 'hl_' + b.id.replace(/__/g, '_');
-  var hasDetail = !!(b.summary || b.url);
   var html = '';
-  html += '<div class="highlight-card" id="hlcard-' + b.id + '">';
-  html += '<div class="highlight-card-top">';
-  html += '<span class="highlight-badge ' + cat.cls + '">' + cat.label + '</span>';
-  html += '<span class="highlight-card-title">' + esc(b.title) + '</span>';
-  html += '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">';
-  if (hasDetail) {
-    html += '<span class="card-icon-btn expand-btn" id="ebtn-' + hcid + '" onclick="toggleExpand(\'' + hcid + '\')" title="展开">';
-    html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+  html += '<div class="card" id="hlcard-' + b.id + '">';
+  html += '<div class="card-top">';
+  html += '<span class="badge ' + cat.cls + '">' + cat.label + '</span>';
+  html += '<span class="card-title">' + esc(b.title) + '</span>';
+  html += '<div class="card-actions">';
+  // Add-to-analysis icon (same as buildCard)
+  if (b.url) {
+    var isAdded = pendingUrls.indexOf(b.url) >= 0;
+    var analyzeColor = isAdded ? 'var(--accent)' : 'var(--text3)';
+    html += '<span class="card-icon-btn" style="color:' + analyzeColor + ';" title="添加到新闻总结" onclick="toggleAnalyzeUrl(this, decodeURIComponent(\'' + encodeURIComponent(b.url) + '\'))">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
     html += '</span>';
   }
-  html += '<span class="highlight-remove" onclick="removeBookmark(\'' + b.id + '\')" title="取消收藏">✕</span>';
+  // Remove bookmark icon
+  html += '<span class="card-icon-btn bookmark-btn active" onclick="removeBookmark(\'' + b.id + '\')" title="取消收藏">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  html += '</span>';
   html += '</div></div>';
-  html += '<div style="font-size:11px;color:var(--text3);margin-top:5px;">' + fmtDate(b.dk) + '</div>';
-  if (hasDetail) {
-    html += '<div class="card-detail" id="edet-' + hcid + '">';
-    if (b.summary) html += '<p class="card-body" style="margin-top:10px;">' + esc(b.summary) + '</p>';
-    if (b.url) {
-      html += '<a class="card-url" href="' + esc(b.url) + '" target="_blank" rel="noopener">';
-      html += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
-      html += esc(b.url) + '</a>';
-    }
+  // Date
+  html += '<div style="font-size:11px;color:var(--text3);margin-top:4px;margin-bottom:2px;">' + fmtDate(b.dk) + '</div>';
+  // Summary always visible (same as buildCard)
+  if (b.summary) html += '<p class="card-body">' + esc(b.summary) + '</p>';
+  // URL link
+  if (b.url) {
+    html += '<div class="card-detail" style="display:block;">';
+    html += '<a class="card-url" href="' + esc(b.url) + '" target="_blank" rel="noopener">';
+    html += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+    html += esc(b.url) + '</a>';
     html += '</div>';
   }
   html += '</div>';
