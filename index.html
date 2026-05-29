@@ -517,10 +517,30 @@ async function callClaude(system, user, tools, model, maxTok) {
   var key = getApiKey();
   if (!key) { openSettings(); throw new Error('请先在设置中填入 Anthropic API Key'); }
   var useModel = model || 'claude-haiku-4-5-20251001';
-  var payload = { apiKey: key, model: useModel, max_tokens: maxTok || 4096, system: system, messages: [{role:'user', content:user}] };
+  var payload = {
+    model: useModel,
+    max_tokens: maxTok || 4096,
+    system: system,
+    messages: [{ role: 'user', content: user }]
+  };
   if (tools) payload.tools = tools;
-  var res = await fetch(getWorker(), { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-  if (!res.ok) { var e = await res.json().catch(function(){return{};}); throw new Error((e.error && e.error.message) || ('Error ' + res.status)); }
+
+  // For web_search calls: go direct to Anthropic API (no Cloudflare timeout)
+  // For non-tool calls: also go direct (simpler, no Worker needed)
+  var res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'web-search-2025-03-05'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    var e = await res.json().catch(function(){ return {}; });
+    throw new Error((e.error && e.error.message) || ('Error ' + res.status));
+  }
   var data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   var text = '';
